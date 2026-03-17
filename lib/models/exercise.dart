@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'muscle.dart';
 
 /// Represents how much a specific muscle is involved in an exercise.
@@ -15,12 +16,14 @@ class MuscleInvolvement {
 class ExerciseSet {
   int repetitions;
   double weight; // in kg
-  int effectiveReps; // reps done close to failure (typically last 5)
+  /// Reps in Reserve (RIR): How many more reps the user thinks they could have done.
+  /// 0 = failure, 1 = 1 rep left, ..., 5 = 5 reps left, 6 = >5 reps left.
+  int repsInReserve;
 
   ExerciseSet({
     required this.repetitions,
     required this.weight,
-    this.effectiveReps = 0,
+    this.repsInReserve = 6,
   });
 }
 
@@ -61,6 +64,9 @@ class Exercise {
     // 2. Calculate metrics for this specific set
     double setIntensity = oneRepetitionMax > 0 ? (completedSet.weight / oneRepetitionMax) : 0;
     double setVolume = completedSet.repetitions * completedSet.weight;
+    
+    // effectiveReps = 6 - repsInReserve (clamped to 0-6)
+    int effectiveReps = max(0, 6 - completedSet.repsInReserve);
 
     // 3. Pass data to each involved muscle
     for (var involvement in involvedMuscles) {
@@ -68,7 +74,7 @@ class Exercise {
         timestamp: timestamp,
         intensity: setIntensity,
         volume: setVolume,
-        effectiveReps: completedSet.effectiveReps,
+        effectiveReps: effectiveReps,
         involvementFactor: involvement.weight,
       );
     }

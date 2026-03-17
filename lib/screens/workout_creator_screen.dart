@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import '../models/muscle.dart';
+import '../models/exercise.dart';
 import 'item_management_screen.dart';
 
 class WorkoutCreatorScreen extends StatelessWidget {
-  final bool hasExercises;
+  final List<Muscle> muscles;
+  final List<Exercise> exercises;
 
-  const WorkoutCreatorScreen({super.key, required this.hasExercises});
+  const WorkoutCreatorScreen({
+    super.key,
+    required this.muscles,
+    required this.exercises,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +28,7 @@ class WorkoutCreatorScreen extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) => ItemManagementScreen<Muscle>(
                       title: 'My Muscles',
-                      items: [
-                        Muscle(name: 'Shoulder'),
-                        Muscle(name: 'Chest'),
-                        Muscle(name: 'Biceps'),
-                      ],
+                      items: muscles,
                       labelBuilder: (muscle) => muscle.name,
                     ),
                   ),
@@ -41,10 +43,10 @@ class WorkoutCreatorScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ItemManagementScreen<String>(
+                    builder: (context) => ItemManagementScreen<Exercise>(
                       title: 'My Exercises',
-                      items: [],
-                      labelBuilder: (item) => item,
+                      items: exercises,
+                      labelBuilder: (exercise) => exercise.name,
                     ),
                   ),
                 );
@@ -54,7 +56,7 @@ class WorkoutCreatorScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: hasExercises
+              onPressed: exercises.isNotEmpty
                   ? () {
                       Navigator.push(
                         context,

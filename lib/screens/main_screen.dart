@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../models/muscle.dart';
+import '../models/exercise.dart';
 import 'workout_creator_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -9,17 +11,24 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  bool _hasExercises = false;
+  final List<Muscle> _myMuscles = [];
+  final List<Exercise> _myExercises = [];
 
   void _navigateTo(Widget screen) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => screen),
-    );
+    ).then((_) {
+      // Refresh the main screen state when returning, 
+      // in case exercises were added to enable "Start Workout"
+      setState(() {});
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    bool hasExercises = _myExercises.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Workout Creator'),
@@ -30,20 +39,18 @@ class _MainScreenState extends State<MainScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ElevatedButton(
-              onPressed: () => _navigateTo(WorkoutCreatorScreen(hasExercises: _hasExercises)),
+              onPressed: () => _navigateTo(WorkoutCreatorScreen(
+                muscles: _myMuscles,
+                exercises: _myExercises,
+              )),
               style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
               child: const Text('Workout Creator'),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _hasExercises ? () {} : null,
+              onPressed: hasExercises ? () {} : null,
               style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
               child: const Text('Start Workout'),
-            ),
-            const SizedBox(height: 40),
-            TextButton(
-              onPressed: () => setState(() => _hasExercises = !_hasExercises),
-              child: Text(_hasExercises ? "Simulate: No Exercises" : "Simulate: Has Exercises"),
             ),
           ],
         ),

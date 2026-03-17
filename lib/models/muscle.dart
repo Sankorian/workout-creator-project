@@ -74,14 +74,12 @@ class Muscle {
 
   static List<Muscle> getDefaultMuscles() {
     final defaultGrowthRules = <GrowthRule>{
-      const SimpleGrowthRule(),
       const IntensityGrowthRule(),
       const EffectiveRepsGrowthRule(),
       const TimingGrowthRule(),
     };
 
     final defaultDecayRules = <DecayRule>{
-      const PassiveDecayRule(),
       const InactivityDecayRule(),
     };
 
@@ -97,7 +95,6 @@ class Muscle {
       Muscle(name: 'Hamstrings', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
       Muscle(name: 'Calves', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
       Muscle(name: 'Abs', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
-      Muscle(name: 'Forearms', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
     ];
   }
 }
