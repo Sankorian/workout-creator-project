@@ -47,6 +47,7 @@ class WorkoutCreatorScreen extends StatelessWidget {
                       title: 'My Exercises',
                       items: exercises,
                       labelBuilder: (exercise) => exercise.name,
+                      availableMuscles: muscles,
                     ),
                   ),
                 );
