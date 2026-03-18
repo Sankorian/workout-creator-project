@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/muscle.dart';
 import '../models/exercise.dart';
+import '../services/storage_service.dart';
 import 'workout_creator_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -11,22 +12,48 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  final List<Muscle> _myMuscles = [];
-  final List<Exercise> _myExercises = [];
+  final StorageService _storageService = StorageService();
+  List<Muscle> _myMuscles = [];
+  List<Exercise> _myExercises = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final muscles = await _storageService.loadMuscles();
+    final exercises = await _storageService.loadExercises(muscles);
+    setState(() {
+      _myMuscles = muscles;
+      _myExercises = exercises;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _saveData() async {
+    await _storageService.saveMuscles(_myMuscles);
+    await _storageService.saveExercises(_myExercises);
+  }
 
   void _navigateTo(Widget screen) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => screen),
     ).then((_) {
-      // Refresh the main screen state when returning, 
-      // in case exercises were added to enable "Start Workout"
+      _saveData();
       setState(() {});
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     bool hasExercises = _myExercises.isNotEmpty;
 
     return Scaffold(
@@ -42,6 +69,7 @@ class _MainScreenState extends State<MainScreen> {
               onPressed: () => _navigateTo(WorkoutCreatorScreen(
                 muscles: _myMuscles,
                 exercises: _myExercises,
+                onSave: _saveData, // Pass the save callback
               )),
               style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
               child: const Text('Workout Creator'),

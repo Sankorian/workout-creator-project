@@ -1,35 +1,65 @@
 import 'muscle_rules.dart';
 
 class Muscle {
+  final String id; // Unique ID for storage
   String name;
-  double growthLevel; // 0 to 100
-  double recoveryTime; // in days
-  double decayStartTime; // in days
-  double decayInterval; //in days
+  double growthLevel;
+  double recoveryTime;
+  double decayStartTime;
+  double decayInterval;
   DateTime? lastTrained;
   DateTime? lastDecayed;
   Set<GrowthRule> growthRules;
   Set<DecayRule> decayRules;
 
   Muscle({
+    String? id,
     required this.name,
     this.growthLevel = 0,
     this.recoveryTime = 2,
     this.decayStartTime = 10,
     this.decayInterval = 5,
+    this.lastTrained,
+    this.lastDecayed,
     Set<GrowthRule>? growthRules,
     Set<DecayRule>? decayRules,
-  })  : growthRules = growthRules ?? {},
+  })  : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
+        growthRules = growthRules ?? {},
         decayRules = decayRules ?? {};
 
-  // Getters to calculate end times based on lastTrained
-  DateTime? get tRecoveryEnd =>
-      lastTrained?.add(Duration(hours: (recoveryTime * 24).toInt()));
+  // JSON Serialization
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'growthLevel': growthLevel,
+    'recoveryTime': recoveryTime,
+    'decayStartTime': decayStartTime,
+    'decayInterval': decayInterval,
+    'lastTrained': lastTrained?.toIso8601String(),
+    'lastDecayed': lastDecayed?.toIso8601String(),
+    'growthRules': growthRules.map((r) => r.name).toList(),
+    'decayRules': decayRules.map((r) => r.name).toList(),
+  };
 
-  DateTime? get tDecayStart =>
-      lastTrained?.add(Duration(hours: (decayStartTime * 24).toInt()));
+  factory Muscle.fromJson(Map<String, dynamic> json) {
+    return Muscle(
+      id: json['id'],
+      name: json['name'],
+      growthLevel: json['growthLevel'].toDouble(),
+      recoveryTime: json['recoveryTime'].toDouble(),
+      decayStartTime: json['decayStartTime'].toDouble(),
+      decayInterval: json['decayInterval'].toDouble(),
+      lastTrained: json['lastTrained'] != null ? DateTime.parse(json['lastTrained']) : null,
+      lastDecayed: json['lastDecayed'] != null ? DateTime.parse(json['lastDecayed']) : null,
+      growthRules: (json['growthRules'] as List).map((n) => GrowthRule.fromName(n)!).toSet(),
+      decayRules: (json['decayRules'] as List).map((n) => DecayRule.fromName(n)!).toSet(),
+    );
+  }
 
-  /// Called when the muscle is trained. Applies all growth rules.
+  // Getters to calculate end times
+  DateTime? get tRecoveryEnd => lastTrained?.add(Duration(hours: (recoveryTime * 24).toInt()));
+  DateTime? get tDecayStart => lastTrained?.add(Duration(hours: (decayStartTime * 24).toInt()));
+
   void train({
     required DateTime timestamp,
     required double intensity,
@@ -38,8 +68,6 @@ class Muscle {
     required double involvementFactor, 
   }) {
     double totalGrowth = 0;
-    
-    // Scale input metrics by involvementFactor
     double adjustedIntensity = intensity * involvementFactor;
     double adjustedVolume = volume * involvementFactor;
     double adjustedEffectiveReps = effectiveReps * involvementFactor;
@@ -52,23 +80,16 @@ class Muscle {
         effectiveReps: adjustedEffectiveReps,
       );
     }
-    
-    // Diminishing returns: growth is harder when closer to 100.
     growthLevel += totalGrowth * (1 - (growthLevel / 100));
-    
     lastTrained = timestamp;
   }
 
-  /// Called to check for decay. Applies all decay rules.
   void applyDecay(DateTime currentTime) {
     double totalDecay = 0;
     for (var rule in decayRules) {
       totalDecay += rule.calculateDecay(this, currentTime);
     }
-
-    // Faster decay at the top, slower close to 0.
     growthLevel -= totalDecay * (growthLevel / 100);
-    
     lastDecayed = currentTime;
   }
 
@@ -78,11 +99,9 @@ class Muscle {
       const EffectiveRepsGrowthRule(),
       const TimingGrowthRule(),
     };
-
     final defaultDecayRules = <DecayRule>{
       const InactivityDecayRule(),
     };
-
     return [
       Muscle(name: 'Biceps', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
       Muscle(name: 'Triceps', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),

@@ -6,11 +6,13 @@ import 'item_management_screen.dart';
 class WorkoutCreatorScreen extends StatelessWidget {
   final List<Muscle> muscles;
   final List<Exercise> exercises;
+  final VoidCallback onSave; // Added callback
 
   const WorkoutCreatorScreen({
     super.key,
     required this.muscles,
     required this.exercises,
+    required this.onSave,
   });
 
   @override
@@ -30,6 +32,7 @@ class WorkoutCreatorScreen extends StatelessWidget {
                       title: 'My Muscles',
                       items: muscles,
                       labelBuilder: (muscle) => muscle.name,
+                      onSave: onSave,
                     ),
                   ),
                 );
@@ -48,6 +51,7 @@ class WorkoutCreatorScreen extends StatelessWidget {
                       items: exercises,
                       labelBuilder: (exercise) => exercise.name,
                       availableMuscles: muscles,
+                      onSave: onSave,
                     ),
                   ),
                 );
@@ -66,6 +70,7 @@ class WorkoutCreatorScreen extends StatelessWidget {
                             title: 'My Workouts',
                             items: [],
                             labelBuilder: (item) => item,
+                            onSave: onSave,
                           ),
                         ),
                       );

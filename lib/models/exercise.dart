@@ -10,6 +10,18 @@ class Inv {
     required this.muscle,
     required this.weight,
   });
+
+  Map<String, dynamic> toJson() => {
+    'muscleId': muscle.id,
+    'weight': weight,
+  };
+
+  static Inv fromJson(Map<String, dynamic> json, List<Muscle> availableMuscles) {
+    return Inv(
+      muscle: availableMuscles.firstWhere((m) => m.id == json['muscleId']),
+      weight: json['weight'].toDouble(),
+    );
+  }
 }
 
 /// Represents a single set within an exercise configuration.
@@ -21,9 +33,22 @@ class ExerciseSet {
     required this.repetitions,
     required this.weight,
   });
+
+  Map<String, dynamic> toJson() => {
+    'repetitions': repetitions,
+    'weight': weight,
+  };
+
+  factory ExerciseSet.fromJson(Map<String, dynamic> json) {
+    return ExerciseSet(
+      repetitions: json['repetitions'],
+      weight: json['weight'].toDouble(),
+    );
+  }
 }
 
 class Exercise {
+  final String id;
   String name;
   List<Inv> involvedMuscles;
   double oneRepetitionMax; // in kg (All-time best)
@@ -31,12 +56,37 @@ class Exercise {
   int pauseTimeSeconds;
 
   Exercise({
+    String? id,
     required this.name,
     required this.involvedMuscles,
     required this.oneRepetitionMax,
     required this.sets,
     this.pauseTimeSeconds = 60,
-  });
+  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'involvedMuscles': involvedMuscles.map((i) => i.toJson()).toList(),
+    'oneRepetitionMax': oneRepetitionMax,
+    'sets': sets.map((s) => s.toJson()).toList(),
+    'pauseTimeSeconds': pauseTimeSeconds,
+  };
+
+  factory Exercise.fromJson(Map<String, dynamic> json, List<Muscle> availableMuscles) {
+    return Exercise(
+      id: json['id'],
+      name: json['name'],
+      involvedMuscles: (json['involvedMuscles'] as List)
+          .map((i) => Inv.fromJson(i, availableMuscles))
+          .toList(),
+      oneRepetitionMax: json['oneRepetitionMax'].toDouble(),
+      sets: (json['sets'] as List)
+          .map((s) => ExerciseSet.fromJson(s))
+          .toList(),
+      pauseTimeSeconds: json['pauseTimeSeconds'],
+    );
+  }
 
   /// Total volume calculated for this exercise configuration.
   double get totalVolume => sets.fold(0, (sum, set) => sum + (set.repetitions * set.weight));
