@@ -61,12 +61,16 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-          Expanded(child: input),
-          Text(_isEditing || _isViewing ? ';' : ',', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+            input,
+            Text(_isEditing || _isViewing ? ';' : ',', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+          ],
+        ),
       ),
     );
   }
@@ -87,27 +91,36 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
                 _buildCodeLine('name', _isViewing 
                   ? Text('"${_nameController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
-                  : TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                  )),
+                  : SizedBox(
+                      width: 200,
+                      child: TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                      ),
+                    )),
                 _buildCodeLine('oneRepetitionMax', _isViewing 
                   ? Text(_oneRepMaxController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : TextFormField(
-                    controller: _oneRepMaxController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                  )),
+                  : SizedBox(
+                      width: 100,
+                      child: TextFormField(
+                        controller: _oneRepMaxController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                      ),
+                    )),
                 _buildCodeLine('pauseTimeSeconds', _isViewing 
                   ? Text(_pauseTimeController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : TextFormField(
-                    controller: _pauseTimeController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                  )),
+                  : SizedBox(
+                      width: 100,
+                      child: TextFormField(
+                        controller: _pauseTimeController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                      ),
+                    )),
                 
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0, top: 8.0),

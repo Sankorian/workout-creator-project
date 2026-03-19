@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import '../models/muscle.dart';
 import '../models/exercise.dart';
+import '../models/workout.dart';
 import 'create_muscle_screen.dart';
 import 'create_exercise_screen.dart';
+import 'create_workout_screen.dart';
 
 class ItemManagementScreen<T> extends StatefulWidget {
   final String title;
   final List<T> items;
   final String Function(T) labelBuilder;
   final List<Muscle>? availableMuscles;
+  final List<Exercise>? availableExercises;
   final VoidCallback? onSave; 
 
   const ItemManagementScreen({
@@ -17,6 +20,7 @@ class ItemManagementScreen<T> extends StatefulWidget {
     required this.items,
     required this.labelBuilder,
     this.availableMuscles,
+    this.availableExercises,
     this.onSave,
   });
 
@@ -50,6 +54,15 @@ class _ItemManagementScreenState<T> extends State<ItemManagementScreen<T>> {
                         MaterialPageRoute(
                           builder: (context) => CreateExerciseScreen(
                             availableMuscles: widget.availableMuscles ?? [],
+                          ),
+                        ),
+                      );
+                    } else if (widget.title == 'My Workouts') {
+                      result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CreateWorkoutScreen(
+                            availableExercises: widget.availableExercises ?? [],
                           ),
                         ),
                       );
@@ -98,6 +111,17 @@ class _ItemManagementScreenState<T> extends State<ItemManagementScreen<T>> {
                             ),
                           ),
                         );
+                      } else if (item is Workout) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateWorkoutScreen(
+                              workoutToEdit: item,
+                              availableExercises: widget.availableExercises ?? [],
+                              isViewOnly: true,
+                            ),
+                          ),
+                        );
                       }
                     },
                   ),
@@ -117,6 +141,16 @@ class _ItemManagementScreenState<T> extends State<ItemManagementScreen<T>> {
                             builder: (context) => CreateExerciseScreen(
                               exerciseToEdit: item,
                               availableMuscles: widget.availableMuscles ?? [],
+                            ),
+                          ),
+                        );
+                      } else if (item is Workout) {
+                        result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateWorkoutScreen(
+                              workoutToEdit: item,
+                              availableExercises: widget.availableExercises ?? [],
                             ),
                           ),
                         );
@@ -157,6 +191,13 @@ class _ItemManagementScreenState<T> extends State<ItemManagementScreen<T>> {
                             weight: s.weight,
                           )).toList(),
                           pauseTimeSeconds: original.pauseTimeSeconds,
+                        );
+                      } else if (original is Workout) {
+                        copy = Workout(
+                          name: original.name,
+                          modus: original.modus,
+                          randomOrder: original.randomOrder,
+                          batches: original.batches.map((b) => List<Exercise>.from(b)).toList(),
                         );
                       }
                       

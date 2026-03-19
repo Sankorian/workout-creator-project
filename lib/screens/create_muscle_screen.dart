@@ -77,12 +77,16 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-          Expanded(child: input),
-          Text(_isEditing || _isViewing ? ';' : ',', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+            input,
+            Text(_isEditing || _isViewing ? ';' : ',', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+          ],
+        ),
       ),
     );
   }
@@ -103,43 +107,58 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
                 _buildCodeLine('name', _isViewing 
                   ? Text('"${_nameController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
-                  : TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '"Name"'),
-                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                  )),
+                  : SizedBox(
+                      width: 200,
+                      child: TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '"Name"'),
+                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                      ),
+                    )),
                 _buildCodeLine('growthLevel', _isViewing 
                   ? Text(_growthLevelController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : TextFormField(
-                    controller: _growthLevelController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '0.0'),
-                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                  )),
+                  : SizedBox(
+                      width: 100,
+                      child: TextFormField(
+                        controller: _growthLevelController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '0.0'),
+                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                      ),
+                    )),
                 _buildCodeLine('recoveryTime', _isViewing 
                   ? Text(_recoveryTimeController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : TextFormField(
-                    controller: _recoveryTimeController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '3'),
-                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                  )),
+                  : SizedBox(
+                      width: 100,
+                      child: TextFormField(
+                        controller: _recoveryTimeController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '3'),
+                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                      ),
+                    )),
                 _buildCodeLine('decayStartTime', _isViewing 
                   ? Text(_decayStartTimeController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : TextFormField(
-                    controller: _decayStartTimeController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '10'),
-                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                  )),
+                  : SizedBox(
+                      width: 100,
+                      child: TextFormField(
+                        controller: _decayStartTimeController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '10'),
+                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                      ),
+                    )),
                 _buildCodeLine('decayInterval', _isViewing 
                   ? Text(_decayIntervalController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : TextFormField(
-                    controller: _decayIntervalController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '5'),
-                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                  )),
+                  : SizedBox(
+                      width: 100,
+                      child: TextFormField(
+                        controller: _decayIntervalController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '5'),
+                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                      ),
+                    )),
                 
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0, top: 8.0),
@@ -149,8 +168,11 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                 if (_isViewing)
                   Padding(
                     padding: const EdgeInsets.only(left: 16.0),
-                    child: Text(_selectedGrowthRules.map((r) => r.name).join(', '), 
-                        style: const TextStyle(fontFamily: 'monospace', fontSize: 16, color: Colors.purple)),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Text(_selectedGrowthRules.map((r) => r.name).join(', '), 
+                          style: const TextStyle(fontFamily: 'monospace', fontSize: 16, color: Colors.purple)),
+                    ),
                   )
                 else
                   ..._availableGrowthRules.map((rule) => CheckboxListTile(
@@ -181,8 +203,11 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                 if (_isViewing)
                   Padding(
                     padding: const EdgeInsets.only(left: 16.0),
-                    child: Text(_selectedDecayRules.map((r) => r.name).join(', '), 
-                        style: const TextStyle(fontFamily: 'monospace', fontSize: 16, color: Colors.purple)),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Text(_selectedDecayRules.map((r) => r.name).join(', '), 
+                          style: const TextStyle(fontFamily: 'monospace', fontSize: 16, color: Colors.purple)),
+                    ),
                   )
                 else
                   ..._availableDecayRules.map((rule) => CheckboxListTile(

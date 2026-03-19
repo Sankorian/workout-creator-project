@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../models/muscle.dart';
 import '../models/exercise.dart';
+import '../models/workout.dart';
 
 class StorageService {
   static const String _muscleFile = 'muscles.json';
   static const String _exerciseFile = 'exercises.json';
+  static const String _workoutFile = 'workouts.json';
 
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
@@ -49,6 +51,24 @@ class StorageService {
       final String jsonString = await file.readAsString();
       final List<dynamic> jsonList = jsonDecode(jsonString);
       return jsonList.map((j) => Exercise.fromJson(j, availableMuscles)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> saveWorkouts(List<Workout> workouts) async {
+    final file = await _getFile(_workoutFile);
+    final String jsonString = jsonEncode(workouts.map((w) => w.toJson()).toList());
+    await file.writeAsString(jsonString);
+  }
+
+  Future<List<Workout>> loadWorkouts(List<Muscle> availableMuscles) async {
+    try {
+      final file = await _getFile(_workoutFile);
+      if (!await file.exists()) return [];
+      final String jsonString = await file.readAsString();
+      final List<dynamic> jsonList = jsonDecode(jsonString);
+      return jsonList.map((j) => Workout.fromJson(j, availableMuscles)).toList();
     } catch (e) {
       return [];
     }

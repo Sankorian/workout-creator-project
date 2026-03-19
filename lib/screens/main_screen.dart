@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/muscle.dart';
 import '../models/exercise.dart';
+import '../models/workout.dart';
 import '../services/storage_service.dart';
 import 'workout_creator_screen.dart';
 
@@ -15,6 +16,7 @@ class _MainScreenState extends State<MainScreen> {
   final StorageService _storageService = StorageService();
   List<Muscle> _myMuscles = [];
   List<Exercise> _myExercises = [];
+  List<Workout> _myWorkouts = [];
   bool _isLoading = true;
 
   @override
@@ -26,9 +28,11 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadData() async {
     final muscles = await _storageService.loadMuscles();
     final exercises = await _storageService.loadExercises(muscles);
+    final workouts = await _storageService.loadWorkouts(muscles);
     setState(() {
       _myMuscles = muscles;
       _myExercises = exercises;
+      _myWorkouts = workouts;
       _isLoading = false;
     });
   }
@@ -36,6 +40,7 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _saveData() async {
     await _storageService.saveMuscles(_myMuscles);
     await _storageService.saveExercises(_myExercises);
+    await _storageService.saveWorkouts(_myWorkouts);
   }
 
   void _navigateTo(Widget screen) {
@@ -54,7 +59,7 @@ class _MainScreenState extends State<MainScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    bool hasExercises = _myExercises.isNotEmpty;
+    bool hasWorkouts = _myWorkouts.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -69,14 +74,15 @@ class _MainScreenState extends State<MainScreen> {
               onPressed: () => _navigateTo(WorkoutCreatorScreen(
                 muscles: _myMuscles,
                 exercises: _myExercises,
-                onSave: _saveData, // Pass the save callback
+                workouts: _myWorkouts,
+                onSave: _saveData,
               )),
               style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
               child: const Text('Workout Creator'),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: hasExercises ? () {} : null,
+              onPressed: hasWorkouts ? () {} : null,
               style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
               child: const Text('Start Workout'),
             ),
