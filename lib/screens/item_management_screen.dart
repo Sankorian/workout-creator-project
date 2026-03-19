@@ -9,7 +9,7 @@ class ItemManagementScreen<T> extends StatefulWidget {
   final List<T> items;
   final String Function(T) labelBuilder;
   final List<Muscle>? availableMuscles;
-  final VoidCallback? onSave; // Callback to trigger save
+  final VoidCallback? onSave; 
 
   const ItemManagementScreen({
     super.key,
@@ -56,36 +56,81 @@ class _ItemManagementScreenState<T> extends State<ItemManagementScreen<T>> {
                     }
 
                     if (result != null && result is T) {
-                      setState(() {
-                        widget.items.add(result);
-                      });
+                      setState(() => widget.items.add(result));
                       if (widget.onSave != null) widget.onSave!();
                     }
                   },
                   icon: const Icon(Icons.add),
                   label: const Text('create new'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 50),
-                  ),
+                  style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
                 ),
               );
             }
 
+            final item = widget.items[index];
+
             return ListTile(
-              title: Text(widget.labelBuilder(widget.items[index])),
+              title: Text(widget.labelBuilder(item)),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(icon: const Icon(Icons.visibility), onPressed: () {}),
-                  IconButton(icon: const Icon(Icons.edit), onPressed: () {}),
+                  IconButton(
+                    icon: const Icon(Icons.visibility),
+                    onPressed: () {
+                      if (item is Muscle) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateMuscleScreen(
+                              muscleToEdit: item,
+                              isViewOnly: true,
+                            ),
+                          ),
+                        );
+                      } else if (item is Exercise) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateExerciseScreen(
+                              exerciseToEdit: item,
+                              availableMuscles: widget.availableMuscles ?? [],
+                              isViewOnly: true,
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () async {
+                      dynamic result;
+                      if (item is Muscle) {
+                        result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => CreateMuscleScreen(muscleToEdit: item)),
+                        );
+                      } else if (item is Exercise) {
+                        result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateExerciseScreen(
+                              exerciseToEdit: item,
+                              availableMuscles: widget.availableMuscles ?? [],
+                            ),
+                          ),
+                        );
+                      }
+
+                      if (result != null && result is T) {
+                        setState(() => widget.items[index] = result);
+                        if (widget.onSave != null) widget.onSave!();
+                      }
+                    },
+                  ),
                   IconButton(
                     icon: const Icon(Icons.delete),
-                    onPressed: () {
-                      setState(() {
-                        widget.items.removeAt(index);
-                      });
-                      if (widget.onSave != null) widget.onSave!();
-                    },
+                    onPressed: () => _showDeleteConfirmation(context, index),
                   ),
                   IconButton(
                     icon: const Icon(Icons.content_copy),
@@ -116,9 +161,7 @@ class _ItemManagementScreenState<T> extends State<ItemManagementScreen<T>> {
                       }
                       
                       if (copy != null && copy is T) {
-                        setState(() {
-                          widget.items.add(copy);
-                        });
+                        setState(() => widget.items.add(copy));
                         if (widget.onSave != null) widget.onSave!();
                       }
                     },
@@ -129,6 +172,37 @@ class _ItemManagementScreenState<T> extends State<ItemManagementScreen<T>> {
           },
         ),
       ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Delete Item"),
+          content: const Text("Are you sure? This action cannot be undone."),
+          actions: [
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    setState(() => widget.items.removeAt(index));
+                    if (widget.onSave != null) widget.onSave!();
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text("DELETE", style: TextStyle(color: Colors.red)),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("CANCEL"),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }

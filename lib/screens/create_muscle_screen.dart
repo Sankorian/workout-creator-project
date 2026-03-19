@@ -3,7 +3,10 @@ import '../models/muscle.dart';
 import '../models/muscle_rules.dart';
 
 class CreateMuscleScreen extends StatefulWidget {
-  const CreateMuscleScreen({super.key});
+  final Muscle? muscleToEdit;
+  final bool isViewOnly;
+
+  const CreateMuscleScreen({super.key, this.muscleToEdit, this.isViewOnly = false});
 
   @override
   State<CreateMuscleScreen> createState() => _CreateMuscleScreenState();
@@ -12,11 +15,11 @@ class CreateMuscleScreen extends StatefulWidget {
 class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
   final _formKey = GlobalKey<FormState>();
   
-  final _nameController = TextEditingController(text: 'Chest');
-  final _growthLevelController = TextEditingController(text: '0.0');
-  final _recoveryTimeController = TextEditingController(text: '3');
-  final _decayStartTimeController = TextEditingController(text: '10');
-  final _decayIntervalController = TextEditingController(text: '5');
+  late final TextEditingController _nameController;
+  late final TextEditingController _growthLevelController;
+  late final TextEditingController _recoveryTimeController;
+  late final TextEditingController _decayStartTimeController;
+  late final TextEditingController _decayIntervalController;
 
   final List<GrowthRule> _availableGrowthRules = [
     const SimpleGrowthRule(),
@@ -33,6 +36,31 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
   final Set<GrowthRule> _selectedGrowthRules = {};
   final Set<DecayRule> _selectedDecayRules = {};
 
+  bool get _isEditing => widget.muscleToEdit != null && !widget.isViewOnly;
+  bool get _isViewing => widget.isViewOnly;
+
+  @override
+  void initState() {
+    super.initState();
+    final m = widget.muscleToEdit;
+    
+    if (m != null) {
+      _nameController = TextEditingController(text: m.name);
+      _growthLevelController = TextEditingController(text: m.growthLevel.toString());
+      _recoveryTimeController = TextEditingController(text: m.recoveryTime.toString());
+      _decayStartTimeController = TextEditingController(text: m.decayStartTime.toString());
+      _decayIntervalController = TextEditingController(text: m.decayInterval.toString());
+      _selectedGrowthRules.addAll(m.growthRules);
+      _selectedDecayRules.addAll(m.decayRules);
+    } else {
+      _nameController = TextEditingController(text: '');
+      _growthLevelController = TextEditingController(text: '');
+      _recoveryTimeController = TextEditingController(text: '');
+      _decayStartTimeController = TextEditingController(text: '');
+      _decayIntervalController = TextEditingController(text: '');
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -44,13 +72,16 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
   }
 
   Widget _buildCodeLine(String label, Widget input) {
+    String prefix = _isEditing ? '  ..$label = ' : '  $label: ';
+    if (_isViewing) prefix = '  $label: ';
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
-          Text('  $label: ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+          Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
           Expanded(child: input),
-          const Text(',', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
+          Text(_isEditing || _isViewing ? ';' : ',', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
         ],
       ),
     );
@@ -58,118 +89,159 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Use SafeArea to avoid system overlays like the navigation bar
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Muscle')),
+      appBar: AppBar(title: Text(_isViewing ? 'View Muscle' : (_isEditing ? 'Edit Muscle' : 'Create Muscle'))),
       body: SafeArea(
         child: SingleChildScrollView(
-          // Add extra padding at the bottom to ensure the EXECUTE button is easily reachable
           padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('final newMuscle = Muscle(', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                _buildCodeLine('name', TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                  style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                )),
-                _buildCodeLine('growthLevel', TextFormField(
-                  controller: _growthLevelController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                  style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                )),
-                _buildCodeLine('recoveryTime', TextFormField(
-                  controller: _recoveryTimeController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                  style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                )),
-                _buildCodeLine('decayStartTime', TextFormField(
-                  controller: _decayStartTimeController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                  style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                )),
-                _buildCodeLine('decayInterval', TextFormField(
-                  controller: _decayIntervalController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                  style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                )),
+                Text(_isViewing ? 'final myMuscle = Muscle(' : (_isEditing ? 'muscleToEdit' : 'final newMuscle = Muscle('), 
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                _buildCodeLine('name', _isViewing 
+                  ? Text('"${_nameController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
+                  : TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '"Name"'),
+                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                  )),
+                _buildCodeLine('growthLevel', _isViewing 
+                  ? Text(_growthLevelController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                  : TextFormField(
+                    controller: _growthLevelController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '0.0'),
+                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                  )),
+                _buildCodeLine('recoveryTime', _isViewing 
+                  ? Text(_recoveryTimeController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                  : TextFormField(
+                    controller: _recoveryTimeController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '3'),
+                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                  )),
+                _buildCodeLine('decayStartTime', _isViewing 
+                  ? Text(_decayStartTimeController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                  : TextFormField(
+                    controller: _decayStartTimeController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '10'),
+                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                  )),
+                _buildCodeLine('decayInterval', _isViewing 
+                  ? Text(_decayIntervalController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                  : TextFormField(
+                    controller: _decayIntervalController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '5'),
+                    style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                  )),
                 
-                const Padding(
-                  padding: EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: Text('  growthRules: [', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0, top: 8.0),
+                  child: Text(_isEditing ? '  ..growthRules = [' : '  growthRules: [', 
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
                 ),
-                ..._availableGrowthRules.map((rule) => CheckboxListTile(
-                  title: Text(rule.name, style: const TextStyle(fontFamily: 'monospace')),
-                  value: _selectedGrowthRules.contains(rule),
-                  onChanged: (val) {
-                    setState(() {
-                      val! ? _selectedGrowthRules.add(rule) : _selectedGrowthRules.remove(rule);
-                    });
-                  },
-                  controlAffinity: ListTileControlAffinity.leading,
-                  dense: true,
-                )),
-                const Padding(
-                  padding: EdgeInsets.only(left: 8.0),
-                  child: Text('  ],', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                ),
-
-                const Padding(
-                  padding: EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: Text('  decayRules: [', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                ),
-                ..._availableDecayRules.map((rule) => CheckboxListTile(
-                  title: Text(rule.name, style: const TextStyle(fontFamily: 'monospace')),
-                  value: _selectedDecayRules.contains(rule),
-                  onChanged: (val) {
-                    setState(() {
-                      val! ? _selectedDecayRules.add(rule) : _selectedDecayRules.remove(rule);
-                    });
-                  },
-                  controlAffinity: ListTileControlAffinity.leading,
-                  dense: true,
-                )),
+                if (_isViewing)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16.0),
+                    child: Text(_selectedGrowthRules.map((r) => r.name).join(', '), 
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 16, color: Colors.purple)),
+                  )
+                else
+                  ..._availableGrowthRules.map((rule) => CheckboxListTile(
+                    title: Text(rule.name, style: const TextStyle(fontFamily: 'monospace')),
+                    value: _selectedGrowthRules.any((r) => r.name == rule.name),
+                    onChanged: (val) {
+                      setState(() {
+                        if (val!) {
+                          _selectedGrowthRules.add(rule);
+                        } else {
+                          _selectedGrowthRules.removeWhere((r) => r.name == rule.name);
+                        }
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    dense: true,
+                  )),
                 const Padding(
                   padding: EdgeInsets.only(left: 8.0),
                   child: Text('  ],', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
                 ),
 
-                const Text(');', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                const SizedBox(height: 20),
-                const Text('myMuscles.add(newMuscle);', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0, top: 8.0),
+                  child: Text(_isEditing ? '  ..decayRules = [' : '  decayRules: [', 
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                ),
+                if (_isViewing)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16.0),
+                    child: Text(_selectedDecayRules.map((r) => r.name).join(', '), 
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 16, color: Colors.purple)),
+                  )
+                else
+                  ..._availableDecayRules.map((rule) => CheckboxListTile(
+                    title: Text(rule.name, style: const TextStyle(fontFamily: 'monospace')),
+                    value: _selectedDecayRules.any((r) => r.name == rule.name),
+                    onChanged: (val) {
+                      setState(() {
+                        if (val!) {
+                          _selectedDecayRules.add(rule);
+                        } else {
+                          _selectedDecayRules.removeWhere((r) => r.name == rule.name);
+                        }
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    dense: true,
+                  )),
+                const Padding(
+                  padding: EdgeInsets.only(left: 8.0),
+                  child: Text('  ],', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                ),
+
+                if (_isViewing || !_isEditing)
+                  const Text(');', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                
+                if (!_isEditing && !_isViewing) ...[
+                  const SizedBox(height: 20),
+                  const Text('myMuscles.add(newMuscle);', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                ],
                 
                 const SizedBox(height: 40),
-                Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        final muscle = Muscle(
-                          name: _nameController.text,
-                          growthLevel: double.tryParse(_growthLevelController.text) ?? 0.0,
-                          recoveryTime: double.tryParse(_recoveryTimeController.text) ?? 2.0,
-                          decayStartTime: double.tryParse(_decayStartTimeController.text) ?? 10.0,
-                          decayInterval: double.tryParse(_decayIntervalController.text) ?? 5.0,
-                          growthRules: Set.from(_selectedGrowthRules),
-                          decayRules: Set.from(_selectedDecayRules),
-                        );
-                        Navigator.pop(context, muscle);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(200, 50),
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
+                if (!_isViewing)
+                  Center(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          final muscle = Muscle(
+                            id: widget.muscleToEdit?.id,
+                            name: _nameController.text.isEmpty ? 'New Muscle' : _nameController.text,
+                            growthLevel: double.tryParse(_growthLevelController.text) ?? 0.0,
+                            recoveryTime: double.tryParse(_recoveryTimeController.text) ?? 2.0,
+                            decayStartTime: double.tryParse(_decayStartTimeController.text) ?? 10.0,
+                            decayInterval: double.tryParse(_decayIntervalController.text) ?? 5.0,
+                            lastTrained: widget.muscleToEdit?.lastTrained,
+                            lastDecayed: widget.muscleToEdit?.lastDecayed,
+                            growthRules: Set.from(_selectedGrowthRules),
+                            decayRules: Set.from(_selectedDecayRules),
+                          );
+                          Navigator.pop(context, muscle);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(200, 50),
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(_isEditing ? 'SAVE CHANGES' : 'EXECUTE'),
                     ),
-                    child: const Text('EXECUTE'),
                   ),
-                ),
               ],
             ),
           ),
