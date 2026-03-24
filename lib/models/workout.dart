@@ -16,9 +16,9 @@ class Workout {
   /// A workout consists of a list of batches.
   /// Each batch is a list of exercises.
   /// - pool: All exercises across all batches are available.
-  /// - strict: Batches are shown one by one. Typically one exercise per batch.
-  /// - choice: The user chooses ONE exercise from the current batch.
-  /// - alternate: Exercises in the batch are performed in alternating sets.
+  /// - strict: One exercise per batch. Selection not yet decided.... TODO
+  /// - choice: The user chooses one exercise from the current batch.
+  /// - alternate: Exercises in the batch alternate after workout.
   /// - supersets: Exercises in the batch are performed back-to-back with no rest between them.
   List<List<Exercise>> batches;
 

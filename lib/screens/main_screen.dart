@@ -4,6 +4,7 @@ import '../models/exercise.dart';
 import '../models/workout.dart';
 import '../services/storage_service.dart';
 import 'workout_creator_screen.dart';
+import 'workout_selection_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -82,7 +83,14 @@ class _MainScreenState extends State<MainScreen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: hasWorkouts ? () {} : null,
+              onPressed: hasWorkouts 
+                  ? () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => WorkoutSelectionScreen(workouts: _myWorkouts),
+                      ),
+                    )
+                  : null,
               style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
               child: const Text('Start Workout'),
             ),
