@@ -35,7 +35,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
     final w = widget.workoutToEdit;
     _nameController = TextEditingController(text: w?.name ?? 'My Workout');
     _selectedModus = w?.modus ?? WorkoutModus.strict;
-    _randomOrder = w?.randomOrder ?? false;
+    _randomOrder = w?.randomBatchOrder ?? false;
 
     if (w != null) {
       for (var batch in w.batches) {
@@ -107,11 +107,14 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                       onChanged: (val) => setState(() => _selectedModus = val!),
                     ),
                   )),
-                _buildCodeLine('randomOrder', _isViewing 
+                _buildCodeLine('randomBatchOrder', _isViewing 
                   ? Text(_randomOrder.toString(), style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : Switch(
-                      value: _randomOrder,
-                      onChanged: (val) => setState(() => _randomOrder = val),
+                  : InkWell(
+                      onTap: () => setState(() => _randomOrder = !_randomOrder),
+                      child: Text(
+                        _randomOrder.toString(),
+                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16),
+                      ),
                     )),
 
                 Padding(
@@ -137,7 +140,8 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                               scrollDirection: Axis.horizontal,
                               child: Row(
                                 children: [
-                                  Text('${ex.name},', style: const TextStyle(fontFamily: 'monospace', fontSize: 14)),
+                                  Text('Exercise(name: "${ex.name}"),', 
+                                      style: const TextStyle(fontFamily: 'monospace', fontSize: 14, color: Colors.blue)),
                                   if (!_isViewing)
                                     IconButton(
                                       icon: const Icon(Icons.remove_circle_outline, size: 16),
@@ -199,11 +203,20 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
+                          // Validation: Ensure at least one exercise in at least one batch
+                          bool hasExercise = _batches.any((batch) => batch.isNotEmpty);
+                          if (!hasExercise) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please add at least one exercise to a batch.')),
+                            );
+                            return;
+                          }
+
                           final workout = Workout(
                             id: widget.workoutToEdit?.id,
                             name: _nameController.text,
                             modus: _selectedModus,
-                            randomOrder: _randomOrder,
+                            randomBatchOrder: _randomOrder,
                             batches: _batches,
                           );
                           Navigator.pop(context, workout);

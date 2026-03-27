@@ -196,7 +196,7 @@ class _ItemManagementScreenState<T> extends State<ItemManagementScreen<T>> {
                         copy = Workout(
                           name: original.name,
                           modus: original.modus,
-                          randomOrder: original.randomOrder,
+                          randomBatchOrder: original.randomBatchOrder,
                           batches: original.batches.map((b) => List<Exercise>.from(b)).toList(),
                         );
                       }

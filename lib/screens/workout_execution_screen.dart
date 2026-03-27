@@ -29,7 +29,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void initState() {
     super.initState();
     _flatExercises = widget.workout.batches.expand((batch) => batch).toList();
-    if (widget.workout.randomOrder) {
+    if (widget.workout.randomBatchOrder) {
       _flatExercises.shuffle();
     }
     _initControllers();
@@ -258,21 +258,9 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
                     border: Border.all(color: Colors.green.withOpacity(0.3)),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Column(
-                    children: [
-                      Text('pauseTimeSeconds: $_remainingSeconds;', 
-                          style: const TextStyle(fontFamily: 'monospace', fontSize: 24, color: Colors.green)),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _remainingSeconds = 0;
-                            _timer?.cancel();
-                            _isTimerRunning = false;
-                          });
-                        },
-                        child: const Text('// skip pause', style: TextStyle(fontFamily: 'monospace', color: Colors.grey)),
-                      ),
-                    ],
+                  child: Center(
+                    child: Text('pauseTimeSeconds: $_remainingSeconds;', 
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 24, color: Colors.green)),
                   ),
                 ),
             ],

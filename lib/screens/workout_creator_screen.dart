@@ -4,7 +4,7 @@ import '../models/exercise.dart';
 import '../models/workout.dart';
 import 'item_management_screen.dart';
 
-class WorkoutCreatorScreen extends StatelessWidget {
+class WorkoutCreatorScreen extends StatefulWidget {
   final List<Muscle> muscles;
   final List<Exercise> exercises;
   final List<Workout> workouts;
@@ -18,6 +18,11 @@ class WorkoutCreatorScreen extends StatelessWidget {
     required this.onSave,
   });
 
+  @override
+  State<WorkoutCreatorScreen> createState() => _WorkoutCreatorScreenState();
+}
+
+class _WorkoutCreatorScreenState extends State<WorkoutCreatorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,51 +38,53 @@ class WorkoutCreatorScreen extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) => ItemManagementScreen<Muscle>(
                       title: 'My Muscles',
-                      items: muscles,
+                      items: widget.muscles,
                       labelBuilder: (muscle) => muscle.name,
-                      onSave: onSave,
+                      onSave: widget.onSave,
                     ),
                   ),
-                );
+                ).then((_) => setState(() {}));
               },
               style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
               child: const Text('My Muscles'),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ItemManagementScreen<Exercise>(
-                      title: 'My Exercises',
-                      items: exercises,
-                      labelBuilder: (exercise) => exercise.name,
-                      availableMuscles: muscles,
-                      onSave: onSave,
-                    ),
-                  ),
-                );
-              },
+              onPressed: widget.muscles.isNotEmpty
+                  ? () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ItemManagementScreen<Exercise>(
+                            title: 'My Exercises',
+                            items: widget.exercises,
+                            labelBuilder: (exercise) => exercise.name,
+                            availableMuscles: widget.muscles,
+                            onSave: widget.onSave,
+                          ),
+                        ),
+                      ).then((_) => setState(() {}));
+                    }
+                  : null,
               style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
               child: const Text('My Exercises'),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: exercises.isNotEmpty
+              onPressed: widget.exercises.isNotEmpty
                   ? () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => ItemManagementScreen<Workout>(
                             title: 'My Workouts',
-                            items: workouts,
+                            items: widget.workouts,
                             labelBuilder: (workout) => workout.name,
-                            availableExercises: exercises,
-                            onSave: onSave,
+                            availableExercises: widget.exercises,
+                            onSave: widget.onSave,
                           ),
                         ),
-                      );
+                      ).then((_) => setState(() {}));
                     }
                   : null,
               style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),

@@ -22,14 +22,14 @@ class Workout {
   /// - supersets: Exercises in the batch are performed back-to-back with no rest between them.
   List<List<Exercise>> batches;
 
-  bool randomOrder;
+  bool randomBatchOrder;
   WorkoutModus modus;
 
   Workout({
     String? id,
     required this.name,
     required this.batches,
-    this.randomOrder = false,
+    this.randomBatchOrder = false,
     this.modus = WorkoutModus.strict,
   }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
@@ -39,7 +39,7 @@ class Workout {
     'batches': batches
         .map((batch) => batch.map((e) => e.toJson()).toList())
         .toList(),
-    'randomOrder': randomOrder,
+    'randomOrder': randomBatchOrder,
     'modus': modus.name,
   };
 
@@ -52,7 +52,7 @@ class Workout {
               .map((e) => Exercise.fromJson(e, availableMuscles))
               .toList())
           .toList(),
-      randomOrder: json['randomOrder'] ?? false,
+      randomBatchOrder: json['randomOrder'] ?? false,
       modus: WorkoutModus.values.firstWhere(
         (m) => m.name == json['modus'],
         orElse: () => WorkoutModus.strict,

@@ -36,7 +36,7 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
     super.initState();
     final e = widget.exerciseToEdit;
     _nameController = TextEditingController(text: e?.name ?? 'Bench Press');
-    _oneRepMaxController = TextEditingController(text: (e?.oneRepetitionMax ?? 100.0).toString());
+    _oneRepMaxController = TextEditingController(text: (e?.oneRepetitionMax ?? 20.0).toString());
     _pauseTimeController = TextEditingController(text: (e?.pauseTimeSeconds ?? 60).toString());
     
     if (e != null) {

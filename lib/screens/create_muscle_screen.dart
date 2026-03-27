@@ -53,11 +53,11 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
       _selectedGrowthRules.addAll(m.growthRules);
       _selectedDecayRules.addAll(m.decayRules);
     } else {
-      _nameController = TextEditingController(text: '');
-      _growthLevelController = TextEditingController(text: '');
-      _recoveryTimeController = TextEditingController(text: '');
-      _decayStartTimeController = TextEditingController(text: '');
-      _decayIntervalController = TextEditingController(text: '');
+      _nameController = TextEditingController(text: 'Biceps');
+      _growthLevelController = TextEditingController(text: '0.0');
+      _recoveryTimeController = TextEditingController(text: '2.0');
+      _decayStartTimeController = TextEditingController(text: '10.0');
+      _decayIntervalController = TextEditingController(text: '5.0');
     }
   }
 
@@ -111,7 +111,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                       width: 200,
                       child: TextFormField(
                         controller: _nameController,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '"Name"'),
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),
                     )),
@@ -122,7 +122,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                       child: TextFormField(
                         controller: _growthLevelController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '0.0'),
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),
                     )),
@@ -133,7 +133,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                       child: TextFormField(
                         controller: _recoveryTimeController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '3'),
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),
                     )),
@@ -144,7 +144,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                       child: TextFormField(
                         controller: _decayStartTimeController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '10'),
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),
                     )),
@@ -155,7 +155,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                       child: TextFormField(
                         controller: _decayIntervalController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none, hintText: '5'),
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),
                     )),
@@ -171,7 +171,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Text(_selectedGrowthRules.map((r) => r.name).join(', '), 
-                          style: const TextStyle(fontFamily: 'monospace', fontSize: 16, color: Colors.purple)),
+                          style: const TextStyle(fontFamily: 'monospace', fontSize: 16, color: Colors.blue)),
                     ),
                   )
                 else
@@ -206,7 +206,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Text(_selectedDecayRules.map((r) => r.name).join(', '), 
-                          style: const TextStyle(fontFamily: 'monospace', fontSize: 16, color: Colors.purple)),
+                          style: const TextStyle(fontFamily: 'monospace', fontSize: 16, color: Colors.blue)),
                     ),
                   )
                 else
