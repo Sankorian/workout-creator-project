@@ -50,33 +50,40 @@ class ExerciseSet {
 class Exercise {
   final String id;
   String name;
+  String description;
   List<Inv> involvedMuscles;
   double oneRepetitionMax; // in kg (All-time best)
   List<ExerciseSet> sets;
   int pauseTimeSeconds;
+  double exerciseDuration; // in minutes
 
   Exercise({
     String? id,
     required this.name,
+    this.description = '',
     required this.involvedMuscles,
     required this.oneRepetitionMax,
     required this.sets,
     this.pauseTimeSeconds = 60,
+    this.exerciseDuration = 0.0,
   }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
+    'description': description,
     'involvedMuscles': involvedMuscles.map((i) => i.toJson()).toList(),
     'oneRepetitionMax': oneRepetitionMax,
     'sets': sets.map((s) => s.toJson()).toList(),
     'pauseTimeSeconds': pauseTimeSeconds,
+    'exerciseDuration': exerciseDuration,
   };
 
   factory Exercise.fromJson(Map<String, dynamic> json, List<Muscle> availableMuscles) {
     return Exercise(
       id: json['id'],
       name: json['name'],
+      description: json['description'] ?? '',
       involvedMuscles: (json['involvedMuscles'] as List)
           .map((i) => Inv.fromJson(i, availableMuscles))
           .toList(),
@@ -85,6 +92,7 @@ class Exercise {
           .map((s) => ExerciseSet.fromJson(s))
           .toList(),
       pauseTimeSeconds: json['pauseTimeSeconds'],
+      exerciseDuration: (json['exerciseDuration'] ?? 0.0).toDouble(),
     );
   }
 

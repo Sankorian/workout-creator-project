@@ -177,7 +177,6 @@ class _ItemManagementScreenState<T> extends State<ItemManagementScreen<T>> {
                           growthLevel: original.growthLevel,
                           recoveryTime: original.recoveryTime,
                           decayStartTime: original.decayStartTime,
-                          decayInterval: original.decayInterval,
                           growthRules: Set.from(original.growthRules),
                           decayRules: Set.from(original.decayRules),
                         );

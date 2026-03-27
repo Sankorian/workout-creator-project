@@ -12,6 +12,7 @@ enum WorkoutModus {
 class Workout {
   final String id;
   String name;
+  String description;
 
   /// A workout consists of a list of batches.
   /// Each batch is a list of exercises.
@@ -28,6 +29,7 @@ class Workout {
   Workout({
     String? id,
     required this.name,
+    this.description = '',
     required this.batches,
     this.randomBatchOrder = false,
     this.modus = WorkoutModus.strict,
@@ -36,6 +38,7 @@ class Workout {
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
+    'description': description,
     'batches': batches
         .map((batch) => batch.map((e) => e.toJson()).toList())
         .toList(),
@@ -47,6 +50,7 @@ class Workout {
     return Workout(
       id: json['id'],
       name: json['name'],
+      description: json['description'] ?? '',
       batches: (json['batches'] as List)
           .map((batch) => (batch as List)
               .map((e) => Exercise.fromJson(e, availableMuscles))

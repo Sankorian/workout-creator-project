@@ -6,7 +6,6 @@ class Muscle {
   double growthLevel;
   double recoveryTime;
   double decayStartTime;
-  double decayInterval;
   DateTime? lastTrained;
   DateTime? lastDecayed;
   Set<GrowthRule> growthRules;
@@ -18,7 +17,6 @@ class Muscle {
     this.growthLevel = 0,
     this.recoveryTime = 2,
     this.decayStartTime = 10,
-    this.decayInterval = 5,
     this.lastTrained,
     this.lastDecayed,
     Set<GrowthRule>? growthRules,
@@ -34,7 +32,6 @@ class Muscle {
     'growthLevel': growthLevel,
     'recoveryTime': recoveryTime,
     'decayStartTime': decayStartTime,
-    'decayInterval': decayInterval,
     'lastTrained': lastTrained?.toIso8601String(),
     'lastDecayed': lastDecayed?.toIso8601String(),
     'growthRules': growthRules.map((r) => r.name).toList(),
@@ -48,7 +45,6 @@ class Muscle {
       growthLevel: json['growthLevel'].toDouble(),
       recoveryTime: json['recoveryTime'].toDouble(),
       decayStartTime: json['decayStartTime'].toDouble(),
-      decayInterval: json['decayInterval'].toDouble(),
       lastTrained: json['lastTrained'] != null ? DateTime.parse(json['lastTrained']) : null,
       lastDecayed: json['lastDecayed'] != null ? DateTime.parse(json['lastDecayed']) : null,
       growthRules: (json['growthRules'] as List).map((n) => GrowthRule.fromName(n)!).toSet(),

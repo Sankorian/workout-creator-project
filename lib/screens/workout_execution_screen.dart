@@ -157,8 +157,19 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(exercise.name, 
+              Text(exercise.name,
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 18)),
+              if (exercise.description.trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  exercise.description,
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
               const SizedBox(height: 30),
               
               // Lineless Table Header

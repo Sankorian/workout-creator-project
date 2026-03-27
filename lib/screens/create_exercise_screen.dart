@@ -22,8 +22,10 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _nameController;
+  late final TextEditingController _descriptionController;
   late final TextEditingController _oneRepMaxController;
   late final TextEditingController _pauseTimeController;
+  late final TextEditingController _durationController;
 
   final List<Inv> _involvedMuscles = [];
   final List<ExerciseSet> _sets = [];
@@ -36,22 +38,26 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
     super.initState();
     final e = widget.exerciseToEdit;
     _nameController = TextEditingController(text: e?.name ?? 'Bench Press');
+    _descriptionController = TextEditingController(text: e?.description ?? 'Standard bench press exercise');
     _oneRepMaxController = TextEditingController(text: (e?.oneRepetitionMax ?? 20.0).toString());
     _pauseTimeController = TextEditingController(text: (e?.pauseTimeSeconds ?? 60).toString());
+    _durationController = TextEditingController(text: (e?.exerciseDuration ?? 0.0).toString());
     
     if (e != null) {
       _involvedMuscles.addAll(e.involvedMuscles);
       _sets.addAll(e.sets);
     } else {
-      _sets.add(ExerciseSet(repetitions: 10, weight: 80.0));
+      _sets.add(ExerciseSet(repetitions: 10, weight: 10.0));
     }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _descriptionController.dispose();
     _oneRepMaxController.dispose();
     _pauseTimeController.dispose();
+    _durationController.dispose();
     super.dispose();
   }
 
@@ -68,7 +74,7 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
           children: [
             Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
             input,
-            Text(_isEditing || _isViewing ? ';' : ',', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+            Text(_isEditing || _isViewing ? ' ;' : ' ,', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
           ],
         ),
       ),
@@ -99,6 +105,16 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),
                     )),
+                _buildCodeLine('description', _isViewing 
+                  ? Text('"${_descriptionController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
+                  : SizedBox(
+                      width: 200,
+                      child: TextFormField(
+                        controller: _descriptionController,
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                      ),
+                    )),
                 _buildCodeLine('oneRepetitionMax', _isViewing 
                   ? Text(_oneRepMaxController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
                   : SizedBox(
@@ -116,6 +132,17 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                       width: 100,
                       child: TextFormField(
                         controller: _pauseTimeController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                      ),
+                    )),
+                _buildCodeLine('exerciseDuration', _isViewing 
+                  ? Text(_durationController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                  : SizedBox(
+                      width: 100,
+                      child: TextFormField(
+                        controller: _durationController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
@@ -219,8 +246,10 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                           final exercise = Exercise(
                             id: widget.exerciseToEdit?.id,
                             name: _nameController.text,
+                            description: _descriptionController.text,
                             oneRepetitionMax: double.tryParse(_oneRepMaxController.text) ?? 0.0,
                             pauseTimeSeconds: int.tryParse(_pauseTimeController.text) ?? 60,
+                            exerciseDuration: double.tryParse(_durationController.text) ?? 0.0,
                             involvedMuscles: List.from(_involvedMuscles),
                             sets: List.from(_sets),
                           );
@@ -292,7 +321,7 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
 
   void _showAddSetDialog() {
     final repsController = TextEditingController(text: '10');
-    final weightController = TextEditingController(text: '80.0');
+    final weightController = TextEditingController(text: '10.0');
 
     showDialog(
       context: context,
@@ -312,7 +341,7 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
               onPressed: () {
                 setState(() => _sets.add(ExerciseSet(
                   repetitions: int.tryParse(repsController.text) ?? 10,
-                  weight: double.tryParse(weightController.text) ?? 0.0,
+                  weight: double.tryParse(weightController.text) ?? 10.0,
                 )));
                 Navigator.pop(context);
               },

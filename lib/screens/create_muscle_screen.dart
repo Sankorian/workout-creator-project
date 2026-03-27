@@ -19,7 +19,6 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
   late final TextEditingController _growthLevelController;
   late final TextEditingController _recoveryTimeController;
   late final TextEditingController _decayStartTimeController;
-  late final TextEditingController _decayIntervalController;
 
   final List<GrowthRule> _availableGrowthRules = [
     const SimpleGrowthRule(),
@@ -49,7 +48,6 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
       _growthLevelController = TextEditingController(text: m.growthLevel.toString());
       _recoveryTimeController = TextEditingController(text: m.recoveryTime.toString());
       _decayStartTimeController = TextEditingController(text: m.decayStartTime.toString());
-      _decayIntervalController = TextEditingController(text: m.decayInterval.toString());
       _selectedGrowthRules.addAll(m.growthRules);
       _selectedDecayRules.addAll(m.decayRules);
     } else {
@@ -57,7 +55,6 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
       _growthLevelController = TextEditingController(text: '0.0');
       _recoveryTimeController = TextEditingController(text: '2.0');
       _decayStartTimeController = TextEditingController(text: '10.0');
-      _decayIntervalController = TextEditingController(text: '5.0');
     }
   }
 
@@ -67,7 +64,6 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
     _growthLevelController.dispose();
     _recoveryTimeController.dispose();
     _decayStartTimeController.dispose();
-    _decayIntervalController.dispose();
     super.dispose();
   }
 
@@ -81,9 +77,11 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
             input,
+            const SizedBox(width: 4),
             Text(_isEditing || _isViewing ? ';' : ',', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
           ],
         ),
@@ -143,17 +141,6 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                       width: 100,
                       child: TextFormField(
                         controller: _decayStartTimeController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                      ),
-                    )),
-                _buildCodeLine('decayInterval', _isViewing 
-                  ? Text(_decayIntervalController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : SizedBox(
-                      width: 100,
-                      child: TextFormField(
-                        controller: _decayIntervalController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
@@ -250,7 +237,6 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                             growthLevel: double.tryParse(_growthLevelController.text) ?? 0.0,
                             recoveryTime: double.tryParse(_recoveryTimeController.text) ?? 2.0,
                             decayStartTime: double.tryParse(_decayStartTimeController.text) ?? 10.0,
-                            decayInterval: double.tryParse(_decayIntervalController.text) ?? 5.0,
                             lastTrained: widget.muscleToEdit?.lastTrained,
                             lastDecayed: widget.muscleToEdit?.lastDecayed,
                             growthRules: Set.from(_selectedGrowthRules),
