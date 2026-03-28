@@ -24,6 +24,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   bool _isPauseDurationTimerRunning = false;
   bool _isExerciseDurationCountdownRunning = false;
   bool _isFinished = false;
+  bool _isBackDialogOpen = false;
 
   final Map<int, int> _setIndexByExercise = {};
   final Map<int, int> _remainingExerciseDurationByExercise = {};
@@ -43,7 +44,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     for (int i = 0; i < _flatExercises.length; i++) {
       _setIndexByExercise[i] = 0;
       _remainingExerciseDurationByExercise[i] = _flatExercises[i].exerciseDuration;
-      if (!widget.workout.allowExerciseSelection || _flatExercises[i].exerciseDuration <= 0) {
+      if (_flatExercises[i].exerciseDuration <= 0) {
         _startedExerciseIndices.add(i);
       }
     }
@@ -51,9 +52,10 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     _restoreCurrentExerciseState();
     _initControllers();
 
-    if (!widget.workout.allowExerciseSelection && _canStartExerciseDurationCountdown()) {
-      _startExerciseDurationCountdown();
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _autoStartCurrentExerciseIfEligible();
+    });
   }
 
   void _initControllers() {
@@ -97,7 +99,6 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   bool _isCurrentExerciseStarted() {
-    if (!widget.workout.allowExerciseSelection) return true;
     return _startedExerciseIndices.contains(_currentExerciseIndex);
   }
 
@@ -106,6 +107,23 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         !_isPauseDurationTimerRunning &&
         _remainingExerciseDurationSeconds > 0 &&
         !_isExerciseDurationCountdownRunning;
+  }
+
+  bool _shouldShowStartExerciseButton(Exercise exercise) {
+    return exercise.exerciseDuration > 0 &&
+        !_isCurrentExerciseStarted() &&
+        _remainingExerciseDurationSeconds > 0;
+  }
+
+  void _autoStartCurrentExerciseIfEligible() {
+    if (widget.workout.allowExerciseSelection) return;
+    if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
+
+    final exercise = _flatExercises[_currentExerciseIndex];
+    if (!_shouldShowStartExerciseButton(exercise)) return;
+    if (_isPauseDurationTimerRunning) return;
+
+    _startCurrentExercise();
   }
 
   bool _isExerciseFullyCompleted(int exerciseIndex) {
@@ -220,9 +238,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       _initControllers();
     });
 
-    if (!widget.workout.allowExerciseSelection && _canStartExerciseDurationCountdown()) {
-      _startExerciseDurationCountdown();
-    }
+    _autoStartCurrentExerciseIfEligible();
   }
 
   void _endExercise() {
@@ -231,6 +247,33 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     setState(() {
       _isFinished = true;
     });
+  }
+
+  Future<void> _handleBackPressedDuringWorkout() async {
+    if (_isBackDialogOpen) return;
+
+    _isBackDialogOpen = true;
+    final shouldFinish = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Finish workout?'),
+        content: const Text('Do you want to finish this workout now?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Yes'),
+          ),
+        ],
+      ),
+    );
+    _isBackDialogOpen = false;
+
+    if (!mounted || shouldFinish != true) return;
+    _endExercise();
   }
 
   void _completeExerciseAction() {
@@ -248,6 +291,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         _remainingPauseDurationSeconds = 0;
         _isPauseDurationTimerRunning = false;
       });
+      _autoStartCurrentExerciseIfEligible();
       return;
     }
 
@@ -266,9 +310,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         } else {
           _pauseDurationTimer?.cancel();
           _isPauseDurationTimerRunning = false;
-          if (!widget.workout.allowExerciseSelection && _canStartExerciseDurationCountdown()) {
-            _startExerciseDurationCountdown();
-          }
+          _autoStartCurrentExerciseIfEligible();
         }
       });
     });
@@ -332,7 +374,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     );
   }
 
-  Widget _buildExerciseProgressOverview({bool showAllCompleted = false}) {
+  Widget _buildExerciseProgressOverview({bool highlightCurrent = true}) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final count = _flatExercises.length;
@@ -358,11 +400,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
               width: contentWidth,
               child: Row(
                 children: List.generate(count, (index) {
-                  final isActive = !showAllCompleted && index == _currentExerciseIndex;
-                  final isLastExercise = index == count - 1;
-                  final isCompleted = showAllCompleted 
-                      ? (isLastExercise ? true : _isExerciseFullyCompleted(index))
-                      : _isExerciseFullyCompleted(index);
+                  final isActive = highlightCurrent && index == _currentExerciseIndex;
+                  final isCompleted = _isExerciseFullyCompleted(index);
 
                   final backgroundColor = isActive
                       ? Colors.blue
@@ -583,7 +622,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildExerciseProgressOverview(showAllCompleted: true),
+                _buildExerciseProgressOverview(highlightCurrent: false),
                 const SizedBox(height: 24),
                 const Expanded(
                   child: Center(
@@ -625,52 +664,57 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     }
 
     final exercise = _flatExercises[_currentExerciseIndex];
-    final canProceedToNextExercise = _canProceedToNextExercise(exercise);
     final isLastExercise = _currentExerciseIndex == _flatExercises.length - 1;
+    final canProceedToNextExercise = _canProceedToNextExercise(exercise) ||
+        (_isPauseDurationTimerRunning && _areAllSetsDone(exercise));
     final exerciseActionLabel = isLastExercise ? 'endExercise();' : 'nextExercise();';
     final hasSets = _hasSets(exercise);
-    final showStartExerciseButton = widget.workout.allowExerciseSelection &&
-        exercise.exerciseDuration > 0 &&
-        !_isCurrentExerciseStarted() &&
-        _remainingExerciseDurationSeconds > 0;
+    final showStartExerciseButton = _shouldShowStartExerciseButton(exercise);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.workout.name)),
-      body: SafeArea(
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onHorizontalDragEnd: (details) {
-            if (!_canSwipeExercises()) return;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBackPressedDuringWorkout();
+      },
+      child: Scaffold(
+        appBar: AppBar(title: Text(widget.workout.name)),
+        body: SafeArea(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragEnd: (details) {
+              if (!_canSwipeExercises()) return;
 
-            final velocity = details.primaryVelocity ?? 0;
-            if (velocity.abs() < 200) return;
+              final velocity = details.primaryVelocity ?? 0;
+              if (velocity.abs() < 200) return;
 
-            if (velocity < 0) {
-              _goToExercise(_currentExerciseIndex + 1);
-            } else {
-              _goToExercise(_currentExerciseIndex - 1);
-            }
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildExerciseProgressOverview(),
-                const SizedBox(height: 16),
-                _buildExerciseTitleAndDescription(exercise),
-                const SizedBox(height: 30),
+              if (velocity < 0) {
+                _goToExercise(_currentExerciseIndex + 1);
+              } else {
+                _goToExercise(_currentExerciseIndex - 1);
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildExerciseProgressOverview(),
+                  const SizedBox(height: 16),
+                  _buildExerciseTitleAndDescription(exercise),
+                  const SizedBox(height: 30),
 
-                if (hasSets) _buildSetTableSection(exercise) else const Spacer(),
+                  if (hasSets) _buildSetTableSection(exercise) else const Spacer(),
 
-                if (_showPauseDurationTimer(exercise)) _buildPauseTimerSection(),
-                if (showStartExerciseButton) _buildStartExerciseButton(),
-                if (_showExerciseDurationTimer(exercise)) _buildExerciseDurationSection(),
-                _buildExerciseActionButton(
-                  canProceedToNextExercise: canProceedToNextExercise,
-                  exerciseActionLabel: exerciseActionLabel,
-                ),
-              ],
+                  if (_showPauseDurationTimer(exercise)) _buildPauseTimerSection(),
+                  if (showStartExerciseButton) _buildStartExerciseButton(),
+                  if (_showExerciseDurationTimer(exercise)) _buildExerciseDurationSection(),
+                  _buildExerciseActionButton(
+                    canProceedToNextExercise: canProceedToNextExercise,
+                    exerciseActionLabel: exerciseActionLabel,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
