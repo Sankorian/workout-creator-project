@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/workout.dart';
 import '../models/exercise.dart';
@@ -14,6 +15,8 @@ class WorkoutExecutionScreen extends StatefulWidget {
 
 class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   late List<Exercise> _flatExercises;
+  final List<int> _batchIndexByExercise = [];
+  final Set<int> _resolvedBatchIndices = {};
   int _currentExerciseIndex = 0;
   int _currentSetIndex = 0;
   
@@ -36,10 +39,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   @override
   void initState() {
     super.initState();
-    _flatExercises = widget.workout.batches.expand((batch) => batch).toList();
-    if (widget.workout.randomBatchOrder) {
-      _flatExercises.shuffle();
-    }
+    _initializeExecutionExercises();
 
     for (int i = 0; i < _flatExercises.length; i++) {
       _setIndexByExercise[i] = 0;
@@ -56,6 +56,83 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       if (!mounted) return;
       _autoStartCurrentExerciseIfEligible();
     });
+  }
+
+  bool get _usesSingleExercisePerBatch {
+    return widget.workout.batchType == BatchType.randomPick ||
+        widget.workout.batchType == BatchType.alternating;
+  }
+
+  void _initializeExecutionExercises() {
+    _batchIndexByExercise.clear();
+    _resolvedBatchIndices.clear();
+
+    if (_usesSingleExercisePerBatch) {
+      final batchOrder = List<int>.generate(widget.workout.batches.length, (i) => i)
+          .where((batchIndex) => widget.workout.batches[batchIndex].isNotEmpty)
+          .toList();
+
+      if (widget.workout.randomBatchOrder) {
+        batchOrder.shuffle();
+      }
+
+      _batchIndexByExercise.addAll(batchOrder);
+      _flatExercises = [
+        for (final batchIndex in batchOrder) widget.workout.batches[batchIndex].first,
+      ];
+
+      if (_flatExercises.isNotEmpty) {
+        _resolveExerciseForExecutionIndex(0);
+      }
+      return;
+    }
+
+    final entries = <MapEntry<int, Exercise>>[];
+    for (int batchIndex = 0; batchIndex < widget.workout.batches.length; batchIndex++) {
+      for (final exercise in widget.workout.batches[batchIndex]) {
+        entries.add(MapEntry(batchIndex, exercise));
+      }
+    }
+
+    if (widget.workout.randomBatchOrder) {
+      entries.shuffle();
+    }
+
+    _batchIndexByExercise.addAll(entries.map((entry) => entry.key));
+    _flatExercises = entries.map((entry) => entry.value).toList();
+  }
+
+  void _resolveExerciseForExecutionIndex(int exerciseIndex) {
+    if (!_usesSingleExercisePerBatch) return;
+    if (exerciseIndex < 0 || exerciseIndex >= _flatExercises.length) return;
+
+    final batchIndex = _batchIndexByExercise[exerciseIndex];
+    if (_resolvedBatchIndices.contains(batchIndex)) return;
+
+    final batch = widget.workout.batches[batchIndex];
+    if (batch.isEmpty) return;
+
+    final selectedExercise = switch (widget.workout.batchType) {
+      BatchType.randomPick => batch[Random().nextInt(batch.length)],
+      BatchType.alternating => batch.first,
+      _ => batch.first,
+    };
+
+    if (widget.workout.batchType == BatchType.alternating && batch.length > 1) {
+      final rotated = batch.removeAt(0);
+      batch.add(rotated);
+    }
+
+    _flatExercises[exerciseIndex] = selectedExercise;
+    _setIndexByExercise[exerciseIndex] = 0;
+    _remainingExerciseDurationByExercise[exerciseIndex] = selectedExercise.exerciseDuration;
+    if (selectedExercise.exerciseDuration <= 0) {
+      _startedExerciseIndices.add(exerciseIndex);
+    } else {
+      _startedExerciseIndices.remove(exerciseIndex);
+    }
+
+    _resolvedBatchIndices.add(batchIndex);
   }
 
   void _initControllers() {
@@ -147,6 +224,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     if (!_canSwipeExercises()) return;
 
     _persistCurrentExerciseState();
+    _resolveExerciseForExecutionIndex(index);
     setState(() {
       _currentExerciseIndex = index;
       _restoreCurrentExerciseState();
@@ -231,9 +309,11 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   void _nextExercise() {
     if (_currentExerciseIndex >= _flatExercises.length - 1) return;
+    final nextIndex = _currentExerciseIndex + 1;
     _persistCurrentExerciseState();
+    _resolveExerciseForExecutionIndex(nextIndex);
     setState(() {
-      _currentExerciseIndex++;
+      _currentExerciseIndex = nextIndex;
       _restoreCurrentExerciseState();
       _initControllers();
     });
