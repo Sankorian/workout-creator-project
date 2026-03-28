@@ -17,11 +17,11 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   int _currentExerciseIndex = 0;
   int _currentSetIndex = 0;
   
-  Timer? _timer;
-  Timer? _exerciseDurationTimer;
-  int _remainingSeconds = 0;
-  int _exerciseRemainingSeconds = 0;
-  bool _isTimerRunning = false;
+  Timer? _pauseDurationTimer;
+  Timer? _exerciseDurationCountdownTimer;
+  int _remainingPauseDurationSeconds = 0;
+  int _remainingExerciseDurationSeconds = 0;
+  bool _isPauseDurationTimerRunning = false;
   bool _isFinished = false;
 
   final Map<int, TextEditingController> _weightControllers = {};
@@ -35,7 +35,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       _flatExercises.shuffle();
     }
     _initControllers();
-    _startExerciseDurationTimer();
+    _startExerciseDurationCountdown();
   }
 
   void _initControllers() {
@@ -58,33 +58,33 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _exerciseDurationTimer?.cancel();
+    _pauseDurationTimer?.cancel();
+    _exerciseDurationCountdownTimer?.cancel();
     _disposeControllers();
     super.dispose();
   }
 
-  void _startExerciseDurationTimer() {
-    _exerciseDurationTimer?.cancel();
+  void _startExerciseDurationCountdown() {
+    _exerciseDurationCountdownTimer?.cancel();
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) {
-      _exerciseRemainingSeconds = 0;
+      _remainingExerciseDurationSeconds = 0;
       return;
     }
 
     final exercise = _flatExercises[_currentExerciseIndex];
-    _exerciseRemainingSeconds = (exercise.exerciseDuration * 60).round();
+    _remainingExerciseDurationSeconds = exercise.exerciseDuration;
 
-    if (_exerciseRemainingSeconds <= 0) return;
+    if (_remainingExerciseDurationSeconds <= 0) return;
 
-    _exerciseDurationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _exerciseDurationCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
 
-      if (_exerciseRemainingSeconds > 0) {
+      if (_remainingExerciseDurationSeconds > 0) {
         setState(() {
-          _exerciseRemainingSeconds--;
+          _remainingExerciseDurationSeconds--;
         });
       } else {
         timer.cancel();
@@ -104,7 +104,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   bool _isExerciseDurationDone(Exercise exercise) {
     if (exercise.exerciseDuration <= 0) return true;
-    return _exerciseRemainingSeconds <= 0;
+    return _remainingExerciseDurationSeconds <= 0;
   }
 
   bool _canProceedToNextExercise(Exercise exercise) {
@@ -116,14 +116,14 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     setState(() {
       _currentExerciseIndex++;
       _currentSetIndex = 0;
-      _startExerciseDurationTimer();
+      _startExerciseDurationCountdown();
       _initControllers();
     });
   }
 
   void _endExercise() {
-    _timer?.cancel();
-    _exerciseDurationTimer?.cancel();
+    _pauseDurationTimer?.cancel();
+    _exerciseDurationCountdownTimer?.cancel();
     setState(() {
       _isFinished = true;
     });
@@ -137,31 +137,31 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     _nextExercise();
   }
 
-  void _startTimer(int seconds) {
-    _timer?.cancel();
+  void _startPauseDurationTimer(int seconds) {
+    _pauseDurationTimer?.cancel();
     if (seconds <= 0) {
       setState(() {
-        _remainingSeconds = 0;
-        _isTimerRunning = false;
+        _remainingPauseDurationSeconds = 0;
+        _isPauseDurationTimerRunning = false;
       });
       return;
     }
 
     setState(() {
-      _remainingSeconds = seconds;
-      _isTimerRunning = true;
+      _remainingPauseDurationSeconds = seconds;
+      _isPauseDurationTimerRunning = true;
     });
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _pauseDurationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
       setState(() {
-        if (_remainingSeconds > 0) {
-          _remainingSeconds--;
+        if (_remainingPauseDurationSeconds > 0) {
+          _remainingPauseDurationSeconds--;
         } else {
-          _timer?.cancel();
-          _isTimerRunning = false;
+          _pauseDurationTimer?.cancel();
+          _isPauseDurationTimerRunning = false;
         }
       });
     });
@@ -179,7 +179,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     set.repetitions = int.tryParse(_repsControllers[_currentSetIndex]?.text ?? '') ?? set.repetitions;
     
     exercise.completeSet(_currentSetIndex, DateTime.now(), 2);
-    _startTimer(exercise.pauseTimeSeconds);
+    _startPauseDurationTimer(exercise.pauseDuration);
     setState(() {
       _currentSetIndex++;
     });
@@ -189,12 +189,12 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   bool _hasSets(Exercise exercise) => exercise.sets.isNotEmpty;
 
-  bool _showPauseTimer(Exercise exercise) {
-    return exercise.pauseTimeSeconds > 0 && _isTimerRunning;
+  bool _showPauseDurationTimer(Exercise exercise) {
+    return exercise.pauseDuration > 0 && _isPauseDurationTimerRunning;
   }
 
   bool _showExerciseDurationTimer(Exercise exercise) {
-    return exercise.exerciseDuration > 0 && _exerciseRemainingSeconds > 0;
+    return exercise.exerciseDuration > 0 && _remainingExerciseDurationSeconds > 0;
   }
 
   Widget _buildExerciseTitleAndDescription(Exercise exercise) {
@@ -217,6 +217,71 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildExerciseProgressOverview() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final count = _flatExercises.length;
+        if (count == 0) return const SizedBox.shrink();
+
+        const minBlockWidth = 32.0;
+        const gap = 8.0;
+
+        final availableWidth = constraints.maxWidth;
+        final stretchedBlockWidth =
+            (availableWidth - (count - 1) * gap) / count;
+
+        // Stretch when possible; once blocks would get too small, keep min width and scroll.
+        final shouldScroll = stretchedBlockWidth < minBlockWidth;
+        final blockWidth = shouldScroll ? minBlockWidth : stretchedBlockWidth;
+        final contentWidth = count * blockWidth + (count - 1) * gap;
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: availableWidth),
+            child: SizedBox(
+              width: contentWidth,
+              child: Row(
+                children: List.generate(count, (index) {
+                  final isActive = index == _currentExerciseIndex;
+                  final isCompleted = index < _currentExerciseIndex;
+
+                  final backgroundColor = isActive
+                      ? Colors.blue
+                      : (isCompleted ? Colors.green : Colors.grey.withValues(alpha: 0.35));
+
+                  final textColor = isActive || isCompleted ? Colors.white : Colors.black54;
+
+                  return Padding(
+                    padding: EdgeInsets.only(right: index == count - 1 ? 0 : gap),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: blockWidth,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: backgroundColor,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${index + 1}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -346,8 +411,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       ),
       child: Center(
         child: Text(
-          'pauseTimeSeconds: $_remainingSeconds;',
-          style: const TextStyle(fontFamily: 'monospace', fontSize: 24, color: Colors.green),
+          'pauseDuration: $_remainingPauseDurationSeconds;',
+          style: const TextStyle(fontFamily: 'monospace', fontSize: 18, color: Colors.green),
         ),
       ),
     );
@@ -359,7 +424,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       width: double.infinity,
       child: Center(
         child: Text(
-          'exerciseDuration: ${_formatDuration(_exerciseRemainingSeconds)};',
+          'exerciseDuration: ${_formatDuration(_remainingExerciseDurationSeconds)};',
           style: const TextStyle(fontFamily: 'monospace', fontSize: 18, color: Colors.deepPurple),
         ),
       ),
@@ -422,12 +487,14 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildExerciseProgressOverview(),
+              const SizedBox(height: 16),
               _buildExerciseTitleAndDescription(exercise),
               const SizedBox(height: 30),
 
               if (hasSets) _buildSetTableSection(exercise) else const Spacer(),
 
-              if (_showPauseTimer(exercise)) _buildPauseTimerSection(),
+              if (_showPauseDurationTimer(exercise)) _buildPauseTimerSection(),
               if (_showExerciseDurationTimer(exercise)) _buildExerciseDurationSection(),
               _buildExerciseActionButton(
                 canProceedToNextExercise: canProceedToNextExercise,

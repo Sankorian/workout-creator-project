@@ -24,7 +24,7 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _oneRepMaxController;
-  late final TextEditingController _pauseTimeController;
+  late final TextEditingController _pauseDurationController;
   late final TextEditingController _durationController;
 
   final List<Inv> _involvedMuscles = [];
@@ -40,8 +40,8 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
     _nameController = TextEditingController(text: e?.name ?? 'Bench Press');
     _descriptionController = TextEditingController(text: e?.description ?? 'Standard bench press exercise');
     _oneRepMaxController = TextEditingController(text: (e?.oneRepetitionMax ?? 20.0).toString());
-    _pauseTimeController = TextEditingController(text: (e?.pauseTimeSeconds ?? 60).toString());
-    _durationController = TextEditingController(text: (e?.exerciseDuration ?? 0.0).toString());
+    _pauseDurationController = TextEditingController(text: (e?.pauseDuration ?? 60).toString());
+    _durationController = TextEditingController(text: (e?.exerciseDuration ?? 0).toString());
     
     if (e != null) {
       _involvedMuscles.addAll(e.involvedMuscles);
@@ -56,7 +56,7 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _oneRepMaxController.dispose();
-    _pauseTimeController.dispose();
+    _pauseDurationController.dispose();
     _durationController.dispose();
     super.dispose();
   }
@@ -126,26 +126,39 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),
                     )),
-                _buildCodeLine('pauseTimeSeconds', _isViewing 
-                  ? Text(_pauseTimeController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                _buildCodeLine('pauseDuration', _isViewing 
+                  ? Text(_pauseDurationController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
                   : SizedBox(
                       width: 100,
                       child: TextFormField(
-                        controller: _pauseTimeController,
+                        controller: _pauseDurationController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),
                     )),
                 _buildCodeLine('exerciseDuration', _isViewing 
-                  ? Text(_durationController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_durationController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16)),
+                        const Text(' // seconds', style: TextStyle(color: Colors.grey, fontFamily: 'monospace', fontSize: 14)),
+                      ],
+                    )
                   : SizedBox(
-                      width: 100,
-                      child: TextFormField(
-                        controller: _durationController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                      width: 180,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _durationController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                              style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                            ),
+                          ),
+                          const Text(' // seconds', style: TextStyle(color: Colors.grey, fontFamily: 'monospace', fontSize: 14)),
+                        ],
                       ),
                     )),
                 
@@ -248,8 +261,8 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                             name: _nameController.text,
                             description: _descriptionController.text,
                             oneRepetitionMax: double.tryParse(_oneRepMaxController.text) ?? 0.0,
-                            pauseTimeSeconds: int.tryParse(_pauseTimeController.text) ?? 60,
-                            exerciseDuration: double.tryParse(_durationController.text) ?? 0.0,
+                            pauseDuration: int.tryParse(_pauseDurationController.text) ?? 60,
+                            exerciseDuration: int.tryParse(_durationController.text) ?? 0,
                             involvedMuscles: List.from(_involvedMuscles),
                             sets: List.from(_sets),
                           );

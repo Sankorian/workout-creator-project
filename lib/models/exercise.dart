@@ -54,8 +54,8 @@ class Exercise {
   List<Inv> involvedMuscles;
   double oneRepetitionMax; // in kg (All-time best)
   List<ExerciseSet> sets;
-  int pauseTimeSeconds;
-  double exerciseDuration; // in minutes
+  int pauseDuration; // in seconds
+  int exerciseDuration; // in seconds
 
   Exercise({
     String? id,
@@ -64,8 +64,8 @@ class Exercise {
     required this.involvedMuscles,
     required this.oneRepetitionMax,
     required this.sets,
-    this.pauseTimeSeconds = 60,
-    this.exerciseDuration = 0.0,
+    this.pauseDuration = 60,
+    this.exerciseDuration = 0,
   }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
   Map<String, dynamic> toJson() => {
@@ -75,11 +75,21 @@ class Exercise {
     'involvedMuscles': involvedMuscles.map((i) => i.toJson()).toList(),
     'oneRepetitionMax': oneRepetitionMax,
     'sets': sets.map((s) => s.toJson()).toList(),
-    'pauseTimeSeconds': pauseTimeSeconds,
+    'pauseDuration': pauseDuration,
     'exerciseDuration': exerciseDuration,
   };
 
   factory Exercise.fromJson(Map<String, dynamic> json, List<Muscle> availableMuscles) {
+    final hasNewPauseField = json.containsKey('pauseDuration');
+    final pauseDuration =
+        ((json['pauseDuration'] ?? json['pauseTimeSeconds'] ?? 60) as num).toInt();
+    final rawExerciseDuration = (json['exerciseDuration'] ?? 0) as num;
+
+    // Legacy entries used minutes; new entries store seconds.
+    final exerciseDuration = hasNewPauseField
+        ? rawExerciseDuration.round()
+        : (rawExerciseDuration * 60).round();
+
     return Exercise(
       id: json['id'],
       name: json['name'],
@@ -91,8 +101,8 @@ class Exercise {
       sets: (json['sets'] as List)
           .map((s) => ExerciseSet.fromJson(s))
           .toList(),
-      pauseTimeSeconds: json['pauseTimeSeconds'],
-      exerciseDuration: (json['exerciseDuration'] ?? 0.0).toDouble(),
+      pauseDuration: pauseDuration,
+      exerciseDuration: exerciseDuration,
     );
   }
 

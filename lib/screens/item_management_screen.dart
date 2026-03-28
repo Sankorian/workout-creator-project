@@ -189,7 +189,8 @@ class _ItemManagementScreenState<T> extends State<ItemManagementScreen<T>> {
                             repetitions: s.repetitions,
                             weight: s.weight,
                           )).toList(),
-                          pauseTimeSeconds: original.pauseTimeSeconds,
+                          pauseDuration: original.pauseDuration,
+                          exerciseDuration: original.exerciseDuration,
                         );
                       } else if (original is Workout) {
                         copy = Workout(
