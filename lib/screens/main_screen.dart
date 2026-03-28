@@ -30,6 +30,7 @@ class _MainScreenState extends State<MainScreen> {
     final muscles = await _storageService.loadMuscles();
     final exercises = await _storageService.loadExercises(muscles);
     final workouts = await _storageService.loadWorkouts(muscles);
+    _syncWorkoutExercises(workouts: workouts, exercises: exercises);
     setState(() {
       _myMuscles = muscles;
       _myExercises = exercises;
@@ -38,7 +39,26 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  void _syncWorkoutExercises({
+    required List<Workout> workouts,
+    required List<Exercise> exercises,
+  }) {
+    final exerciseById = {for (final exercise in exercises) exercise.id: exercise};
+
+    for (final workout in workouts) {
+      for (final batch in workout.batches) {
+        for (int i = 0; i < batch.length; i++) {
+          final latestExercise = exerciseById[batch[i].id];
+          if (latestExercise != null) {
+            batch[i] = latestExercise;
+          }
+        }
+      }
+    }
+  }
+
   Future<void> _saveData() async {
+    _syncWorkoutExercises(workouts: _myWorkouts, exercises: _myExercises);
     await _storageService.saveMuscles(_myMuscles);
     await _storageService.saveExercises(_myExercises);
     await _storageService.saveWorkouts(_myWorkouts);
@@ -49,6 +69,7 @@ class _MainScreenState extends State<MainScreen> {
       context,
       MaterialPageRoute(builder: (context) => screen),
     ).then((_) {
+      _syncWorkoutExercises(workouts: _myWorkouts, exercises: _myExercises);
       _saveData();
       setState(() {});
     });

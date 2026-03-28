@@ -241,16 +241,16 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
                             ),
                             SizedBox(
                               width: 60,
-                              child: IconButton(
-                                icon: Icon(
-                                  Icons.check_circle,
-                                  color: isDone
-                                      ? Colors.green
-                                      : (isCurrent ? Colors.grey : Colors.grey.withOpacity(0.3)),
+                              child: GestureDetector(
+                                onTap: isCurrent && !isDone ? _completeSet : null,
+                                child: Text(
+                                  isDone ? 'true' : 'false',
+                                  style: cellStyle.copyWith(
+                                    color: isDone
+                                        ? Colors.green
+                                        : (isCurrent ? Colors.blue : Colors.grey),
+                                  ),
                                 ),
-                                onPressed: isCurrent ? _completeSet : null,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
                               ),
                             ),
                           ],
