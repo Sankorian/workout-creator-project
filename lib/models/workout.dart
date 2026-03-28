@@ -1,12 +1,11 @@
 import 'exercise.dart';
 import 'muscle.dart';
 
-enum WorkoutModus {
-  pool,
-  strict,
+enum BatchType {
   choice,
-  alternate,
-  supersets,
+  randomPick,
+  alternating,
+  superset,
 }
 
 class Workout {
@@ -16,15 +15,15 @@ class Workout {
 
   /// A workout consists of a list of batches.
   /// Each batch is a list of exercises.
-  /// - pool: All exercises across all batches are available.
-  /// - strict: One exercise per batch. Selection not yet decided.... TODO
   /// - choice: The user chooses one exercise from the current batch.
-  /// - alternate: Exercises in the batch alternate after workout.
-  /// - supersets: Exercises in the batch are performed back-to-back with no rest between them.
+  /// - randomPick: The system picks one exercise from the current batch.
+  /// - alternating: Exercises in the batch alternate after workout.
+  /// - superset: Exercises in the batch are performed back-to-back with no rest between them.
   List<List<Exercise>> batches;
 
   bool randomBatchOrder;
-  WorkoutModus modus;
+  BatchType batchType;
+  bool allowExerciseSelection;
 
   Workout({
     String? id,
@@ -32,7 +31,8 @@ class Workout {
     this.description = '',
     required this.batches,
     this.randomBatchOrder = false,
-    this.modus = WorkoutModus.strict,
+    this.batchType = BatchType.choice,
+    this.allowExerciseSelection = true,
   }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
   Map<String, dynamic> toJson() => {
@@ -43,10 +43,36 @@ class Workout {
         .map((batch) => batch.map((e) => e.toJson()).toList())
         .toList(),
     'randomOrder': randomBatchOrder,
-    'modus': modus.name,
+    'batchType': batchType.name,
+    'allowExerciseSelection': allowExerciseSelection,
   };
 
   factory Workout.fromJson(Map<String, dynamic> json, List<Muscle> availableMuscles) {
+    final legacyModus = (json['modus'] ?? '').toString();
+    final rawBatchType = (json['batchType'] ?? '').toString();
+
+    final batchType = BatchType.values.firstWhere(
+      (type) => type.name == rawBatchType,
+      orElse: () {
+        switch (legacyModus) {
+          case 'alternate':
+            return BatchType.alternating;
+          case 'supersets':
+            return BatchType.superset;
+          case 'pool':
+            return BatchType.randomPick;
+          case 'choice':
+          case 'strict':
+          default:
+            return BatchType.choice;
+        }
+      },
+    );
+
+    final allowExerciseSelection = json.containsKey('allowExerciseSelection')
+        ? (json['allowExerciseSelection'] ?? false)
+        : (legacyModus == 'choice' || legacyModus == 'pool');
+
     return Workout(
       id: json['id'],
       name: json['name'],
@@ -57,10 +83,8 @@ class Workout {
               .toList())
           .toList(),
       randomBatchOrder: json['randomOrder'] ?? false,
-      modus: WorkoutModus.values.firstWhere(
-        (m) => m.name == json['modus'],
-        orElse: () => WorkoutModus.strict,
-      ),
+      batchType: batchType,
+      allowExerciseSelection: allowExerciseSelection,
     );
   }
 }

@@ -22,7 +22,12 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   int _remainingPauseDurationSeconds = 0;
   int _remainingExerciseDurationSeconds = 0;
   bool _isPauseDurationTimerRunning = false;
+  bool _isExerciseDurationCountdownRunning = false;
   bool _isFinished = false;
+
+  final Map<int, int> _setIndexByExercise = {};
+  final Map<int, int> _remainingExerciseDurationByExercise = {};
+  final Set<int> _startedExerciseIndices = {};
 
   final Map<int, TextEditingController> _weightControllers = {};
   final Map<int, TextEditingController> _repsControllers = {};
@@ -34,8 +39,21 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     if (widget.workout.randomBatchOrder) {
       _flatExercises.shuffle();
     }
+
+    for (int i = 0; i < _flatExercises.length; i++) {
+      _setIndexByExercise[i] = 0;
+      _remainingExerciseDurationByExercise[i] = _flatExercises[i].exerciseDuration;
+      if (!widget.workout.allowExerciseSelection || _flatExercises[i].exerciseDuration <= 0) {
+        _startedExerciseIndices.add(i);
+      }
+    }
+
+    _restoreCurrentExerciseState();
     _initControllers();
-    _startExerciseDurationCountdown();
+
+    if (!widget.workout.allowExerciseSelection && _canStartExerciseDurationCountdown()) {
+      _startExerciseDurationCountdown();
+    }
   }
 
   void _initControllers() {
@@ -64,30 +82,112 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     super.dispose();
   }
 
+  void _persistCurrentExerciseState() {
+    _setIndexByExercise[_currentExerciseIndex] = _currentSetIndex;
+    _remainingExerciseDurationByExercise[_currentExerciseIndex] = _remainingExerciseDurationSeconds;
+  }
+
+  void _restoreCurrentExerciseState() {
+    if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
+
+    _currentSetIndex = _setIndexByExercise[_currentExerciseIndex] ?? 0;
+    _remainingExerciseDurationSeconds =
+        _remainingExerciseDurationByExercise[_currentExerciseIndex] ??
+            _flatExercises[_currentExerciseIndex].exerciseDuration;
+  }
+
+  bool _isCurrentExerciseStarted() {
+    if (!widget.workout.allowExerciseSelection) return true;
+    return _startedExerciseIndices.contains(_currentExerciseIndex);
+  }
+
+  bool _canStartExerciseDurationCountdown() {
+    return _isCurrentExerciseStarted() &&
+        !_isPauseDurationTimerRunning &&
+        _remainingExerciseDurationSeconds > 0 &&
+        !_isExerciseDurationCountdownRunning;
+  }
+
+  bool _isExerciseFullyCompleted(int exerciseIndex) {
+    if (exerciseIndex < 0 || exerciseIndex >= _flatExercises.length) return false;
+
+    final exercise = _flatExercises[exerciseIndex];
+    final setIndex = _setIndexByExercise[exerciseIndex] ?? 0;
+    final allSetsDone = setIndex >= exercise.sets.length;
+    final durationDone = (exercise.exerciseDuration <= 0) ||
+        ((_remainingExerciseDurationByExercise[exerciseIndex] ?? exercise.exerciseDuration) <= 0);
+
+    return allSetsDone && durationDone;
+  }
+
+  bool _canSwipeExercises() {
+    return widget.workout.allowExerciseSelection && !_isExerciseDurationCountdownRunning;
+  }
+
+  void _goToExercise(int index) {
+    if (index < 0 || index >= _flatExercises.length || index == _currentExerciseIndex) return;
+    if (!_canSwipeExercises()) return;
+
+    _persistCurrentExerciseState();
+    setState(() {
+      _currentExerciseIndex = index;
+      _restoreCurrentExerciseState();
+      _initControllers();
+    });
+  }
+
+  void _startCurrentExercise() {
+    if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
+    final exercise = _flatExercises[_currentExerciseIndex];
+
+    setState(() {
+      if (_isPauseDurationTimerRunning) {
+        _pauseDurationTimer?.cancel();
+        _isPauseDurationTimerRunning = false;
+        _remainingPauseDurationSeconds = 0;
+      }
+
+      _startedExerciseIndices.add(_currentExerciseIndex);
+    });
+
+    if (exercise.exerciseDuration > 0 && _remainingExerciseDurationSeconds > 0) {
+      _startExerciseDurationCountdown();
+    }
+  }
+
   void _startExerciseDurationCountdown() {
     _exerciseDurationCountdownTimer?.cancel();
+    _isExerciseDurationCountdownRunning = false;
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) {
       _remainingExerciseDurationSeconds = 0;
       return;
     }
 
-    final exercise = _flatExercises[_currentExerciseIndex];
-    _remainingExerciseDurationSeconds = exercise.exerciseDuration;
-
     if (_remainingExerciseDurationSeconds <= 0) return;
+
+    if (mounted) {
+      setState(() {
+        _isExerciseDurationCountdownRunning = true;
+      });
+    } else {
+      _isExerciseDurationCountdownRunning = true;
+    }
 
     _exerciseDurationCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
+        _isExerciseDurationCountdownRunning = false;
         return;
       }
 
       if (_remainingExerciseDurationSeconds > 0) {
         setState(() {
           _remainingExerciseDurationSeconds--;
+          _remainingExerciseDurationByExercise[_currentExerciseIndex] = _remainingExerciseDurationSeconds;
         });
       } else {
         timer.cancel();
+        _isExerciseDurationCountdownRunning = false;
       }
     });
   }
@@ -113,12 +213,16 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   void _nextExercise() {
     if (_currentExerciseIndex >= _flatExercises.length - 1) return;
+    _persistCurrentExerciseState();
     setState(() {
       _currentExerciseIndex++;
-      _currentSetIndex = 0;
-      _startExerciseDurationCountdown();
+      _restoreCurrentExerciseState();
       _initControllers();
     });
+
+    if (!widget.workout.allowExerciseSelection && _canStartExerciseDurationCountdown()) {
+      _startExerciseDurationCountdown();
+    }
   }
 
   void _endExercise() {
@@ -162,6 +266,9 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         } else {
           _pauseDurationTimer?.cancel();
           _isPauseDurationTimerRunning = false;
+          if (!widget.workout.allowExerciseSelection && _canStartExerciseDurationCountdown()) {
+            _startExerciseDurationCountdown();
+          }
         }
       });
     });
@@ -169,6 +276,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   void _completeSet() {
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
+    if (!_isCurrentExerciseStarted()) return;
     final exercise = _flatExercises[_currentExerciseIndex];
     if (_currentSetIndex >= exercise.sets.length) return;
 
@@ -182,6 +290,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     _startPauseDurationTimer(exercise.pauseDuration);
     setState(() {
       _currentSetIndex++;
+      _setIndexByExercise[_currentExerciseIndex] = _currentSetIndex;
     });
   }
 
@@ -194,7 +303,10 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   bool _showExerciseDurationTimer(Exercise exercise) {
-    return exercise.exerciseDuration > 0 && _remainingExerciseDurationSeconds > 0;
+    return _isCurrentExerciseStarted() &&
+        exercise.exerciseDuration > 0 &&
+        _isExerciseDurationCountdownRunning &&
+        _remainingExerciseDurationSeconds > 0;
   }
 
   Widget _buildExerciseTitleAndDescription(Exercise exercise) {
@@ -220,7 +332,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     );
   }
 
-  Widget _buildExerciseProgressOverview() {
+  Widget _buildExerciseProgressOverview({bool showAllCompleted = false}) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final count = _flatExercises.length;
@@ -246,8 +358,11 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
               width: contentWidth,
               child: Row(
                 children: List.generate(count, (index) {
-                  final isActive = index == _currentExerciseIndex;
-                  final isCompleted = index < _currentExerciseIndex;
+                  final isActive = !showAllCompleted && index == _currentExerciseIndex;
+                  final isLastExercise = index == count - 1;
+                  final isCompleted = showAllCompleted 
+                      ? (isLastExercise ? true : _isExerciseFullyCompleted(index))
+                      : _isExerciseFullyCompleted(index);
 
                   final backgroundColor = isActive
                       ? Colors.blue
@@ -314,7 +429,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   Widget _buildSetRow(Exercise exercise, int index) {
     const cellStyle = TextStyle(fontFamily: 'monospace', fontSize: 16);
-    final isCurrent = index == _currentSetIndex;
+    final isCurrent = _isCurrentExerciseStarted() && index == _currentSetIndex;
     final isDone = index < _currentSetIndex;
 
     return SingleChildScrollView(
@@ -431,6 +546,19 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     );
   }
 
+  Widget _buildStartExerciseButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _startCurrentExercise,
+        child: const Text(
+          'startExercise();',
+          style: TextStyle(fontFamily: 'monospace'),
+        ),
+      ),
+    );
+  }
+
   Widget _buildExerciseActionButton({
     required bool canProceedToNextExercise,
     required String exerciseActionLabel,
@@ -448,19 +576,42 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   Widget build(BuildContext context) {
     if (_isFinished) {
       return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('Workout.complete();', style: TextStyle(fontFamily: 'monospace', fontSize: 20, color: Colors.green)),
-              const SizedBox(height: 20),
-              const Text('Congratulations!', style: TextStyle(fontSize: 24)),
-              const SizedBox(height: 40),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('RETURN TO MAIN', style: TextStyle(fontFamily: 'monospace')),
-              ),
-            ],
+        appBar: AppBar(title: Text(widget.workout.name)),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildExerciseProgressOverview(showAllCompleted: true),
+                const SizedBox(height: 24),
+                const Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Workout.complete();',
+                          style: TextStyle(fontFamily: 'monospace', fontSize: 20, color: Colors.green),
+                        ),
+                        SizedBox(height: 20),
+                        Text('Congratulations!', style: TextStyle(fontSize: 24)),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text(
+                      'returnToMain();',
+                      style: TextStyle(fontFamily: 'monospace'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -478,29 +629,49 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     final isLastExercise = _currentExerciseIndex == _flatExercises.length - 1;
     final exerciseActionLabel = isLastExercise ? 'endExercise();' : 'nextExercise();';
     final hasSets = _hasSets(exercise);
+    final showStartExerciseButton = widget.workout.allowExerciseSelection &&
+        exercise.exerciseDuration > 0 &&
+        !_isCurrentExerciseStarted() &&
+        _remainingExerciseDurationSeconds > 0;
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.workout.name)),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildExerciseProgressOverview(),
-              const SizedBox(height: 16),
-              _buildExerciseTitleAndDescription(exercise),
-              const SizedBox(height: 30),
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: (details) {
+            if (!_canSwipeExercises()) return;
 
-              if (hasSets) _buildSetTableSection(exercise) else const Spacer(),
+            final velocity = details.primaryVelocity ?? 0;
+            if (velocity.abs() < 200) return;
 
-              if (_showPauseDurationTimer(exercise)) _buildPauseTimerSection(),
-              if (_showExerciseDurationTimer(exercise)) _buildExerciseDurationSection(),
-              _buildExerciseActionButton(
-                canProceedToNextExercise: canProceedToNextExercise,
-                exerciseActionLabel: exerciseActionLabel,
-              ),
-            ],
+            if (velocity < 0) {
+              _goToExercise(_currentExerciseIndex + 1);
+            } else {
+              _goToExercise(_currentExerciseIndex - 1);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildExerciseProgressOverview(),
+                const SizedBox(height: 16),
+                _buildExerciseTitleAndDescription(exercise),
+                const SizedBox(height: 30),
+
+                if (hasSets) _buildSetTableSection(exercise) else const Spacer(),
+
+                if (_showPauseDurationTimer(exercise)) _buildPauseTimerSection(),
+                if (showStartExerciseButton) _buildStartExerciseButton(),
+                if (_showExerciseDurationTimer(exercise)) _buildExerciseDurationSection(),
+                _buildExerciseActionButton(
+                  canProceedToNextExercise: canProceedToNextExercise,
+                  exerciseActionLabel: exerciseActionLabel,
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -23,7 +23,8 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
 
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
-  late WorkoutModus _selectedModus;
+  late BatchType _selectedBatchType;
+  late bool _allowExerciseSelection;
   late bool _randomOrder;
   final List<List<Exercise>> _batches = [];
 
@@ -36,7 +37,8 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
     final w = widget.workoutToEdit;
     _nameController = TextEditingController(text: w?.name ?? 'My Workout');
     _descriptionController = TextEditingController(text: w?.description ?? 'Enter description...');
-    _selectedModus = w?.modus ?? WorkoutModus.strict;
+    _selectedBatchType = w?.batchType ?? BatchType.choice;
+    _allowExerciseSelection = w?.allowExerciseSelection ?? true;
     _randomOrder = w?.randomBatchOrder ?? false;
 
     if (w != null) {
@@ -110,18 +112,27 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                       style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                     ),
                   )),
-                _buildCodeLine('modus', _isViewing 
-                  ? Text('WorkoutModus.${_selectedModus.name}', 
+                _buildCodeLine('batchType', _isViewing 
+                  ? Text('BatchType.${_selectedBatchType.name}', 
                       style: const TextStyle(color: Colors.purple, fontFamily: 'monospace', fontSize: 16))
                   : DropdownButtonHideUnderline(
-                    child: DropdownButton<WorkoutModus>(
-                      value: _selectedModus,
+                    child: DropdownButton<BatchType>(
+                      value: _selectedBatchType,
                       isDense: true,
                       style: const TextStyle(color: Colors.purple, fontFamily: 'monospace', fontSize: 16),
-                      items: WorkoutModus.values.map((m) => DropdownMenuItem(value: m, child: Text('WorkoutModus.${m.name}'))).toList(),
-                      onChanged: (val) => setState(() => _selectedModus = val!),
+                      items: BatchType.values.map((m) => DropdownMenuItem(value: m, child: Text('BatchType.${m.name}'))).toList(),
+                      onChanged: (val) => setState(() => _selectedBatchType = val!),
                     ),
                   )),
+                _buildCodeLine('allowExerciseSelection', _isViewing 
+                  ? Text(_allowExerciseSelection.toString(), style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                  : InkWell(
+                      onTap: () => setState(() => _allowExerciseSelection = !_allowExerciseSelection),
+                      child: Text(
+                        _allowExerciseSelection.toString(),
+                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16),
+                      ),
+                    )),
                 _buildCodeLine('randomBatchOrder', _isViewing 
                   ? Text(_randomOrder.toString(), style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
                   : InkWell(
@@ -231,7 +242,8 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                             id: widget.workoutToEdit?.id,
                             name: _nameController.text,
                             description: _descriptionController.text,
-                            modus: _selectedModus,
+                            batchType: _selectedBatchType,
+                            allowExerciseSelection: _allowExerciseSelection,
                             randomBatchOrder: _randomOrder,
                             batches: _batches,
                           );

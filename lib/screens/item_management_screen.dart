@@ -195,7 +195,8 @@ class _ItemManagementScreenState<T> extends State<ItemManagementScreen<T>> {
                       } else if (original is Workout) {
                         copy = Workout(
                           name: original.name,
-                          modus: original.modus,
+                          batchType: original.batchType,
+                          allowExerciseSelection: original.allowExerciseSelection,
                           randomBatchOrder: original.randomBatchOrder,
                           batches: original.batches.map((b) => List<Exercise>.from(b)).toList(),
                         );
