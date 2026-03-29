@@ -1,20 +1,25 @@
 import 'muscle.dart';
 
-/// Represents how much a specific muscle is involved in an exercise.
+/// Connects a muscle to an exercise with an involvement factor.
 class Inv {
+  /// Referenced muscle.
   final Muscle muscle;
-  final double weight; // 0.0 to 1.0 (involvement factor)
+
+  /// Relative contribution in the 0..1 range.
+  final double weight;
 
   const Inv({
     required this.muscle,
     required this.weight,
   });
 
+  /// Serializes this involvement reference.
   Map<String, dynamic> toJson() => {
     'muscleId': muscle.id,
     'weight': weight,
   };
 
+  /// Rebuilds an involvement reference from JSON.
   static Inv fromJson(Map<String, dynamic> json, List<Muscle> availableMuscles) {
     return Inv(
       muscle: availableMuscles.firstWhere((m) => m.id == json['muscleId']),
@@ -23,21 +28,26 @@ class Inv {
   }
 }
 
-/// Represents a single set within an exercise configuration.
+/// Defines one configured training set.
 class ExerciseSet {
+  /// Planned repetitions for the set.
   int repetitions;
-  double weight; // in kg
+
+  /// Planned load in kilograms.
+  double weight;
 
   ExerciseSet({
     required this.repetitions,
     required this.weight,
   });
 
+  /// Serializes this set.
   Map<String, dynamic> toJson() => {
     'repetitions': repetitions,
     'weight': weight,
   };
 
+  /// Rebuilds a set from JSON.
   factory ExerciseSet.fromJson(Map<String, dynamic> json) {
     return ExerciseSet(
       repetitions: json['repetitions'],
@@ -46,15 +56,31 @@ class ExerciseSet {
   }
 }
 
+/// Represents a trainable exercise definition and its execution settings.
 class Exercise {
+  /// Stable identifier used for persistence.
   final String id;
+
+  /// Display name.
   String name;
+
+  /// Optional user-facing notes.
   String description;
+
+  /// Muscles involved in this exercise.
   List<Inv> involvedMuscles;
-  double oneRepetitionMax; // in kg (All-time best)
+
+  /// Best known one-repetition maximum in kilograms.
+  double oneRepetitionMax;
+
+  /// Ordered set plan for this exercise.
   List<ExerciseSet> sets;
-  int pauseDuration; // in seconds
-  int exerciseDuration; // in seconds
+
+  /// Planned pause between sets in seconds.
+  int pauseDuration;
+
+  /// Planned duration in seconds for time-based execution.
+  int exerciseDuration;
 
   Exercise({
     String? id,
@@ -67,6 +93,7 @@ class Exercise {
     this.exerciseDuration = 0,
   }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
+  /// Serializes this exercise.
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
@@ -78,13 +105,14 @@ class Exercise {
     'exerciseDuration': exerciseDuration,
   };
 
+  /// Rebuilds an exercise from JSON, including legacy field compatibility.
   factory Exercise.fromJson(Map<String, dynamic> json, List<Muscle> availableMuscles) {
     final hasNewPauseField = json.containsKey('pauseDuration');
     final pauseDuration =
         ((json['pauseDuration'] ?? json['pauseTimeSeconds'] ?? 60) as num).toInt();
     final rawExerciseDuration = (json['exerciseDuration'] ?? 0) as num;
 
-    // Legacy entries used minutes; new entries store seconds.
+    // Legacy entries stored minutes; current entries store seconds.
     final exerciseDuration = hasNewPauseField
         ? rawExerciseDuration.round()
         : (rawExerciseDuration * 60).round();
@@ -105,28 +133,25 @@ class Exercise {
     );
   }
 
-  /// Calculates the estimated 1RM using the Epley formula.
+  /// Estimates 1RM from reps and load using the Epley formula.
   double calculateEpley1RM(int reps, double weight) {
     if (reps <= 0) return 0;
     if (reps == 1) return weight;
     return weight * (1 + reps / 30.0);
   }
 
-  /// Processes a completed set: Updates 1RM and notifies all involved muscles.
-  /// [repsInReserve] is provided by the user during execution:
-  /// 0 = failure, 1 = 1 rep left, ..., 5 = 5 reps left, 6 = >5 reps left.
+  /// Processes a completed set, updates 1RM, and trains involved muscles.
   void completeSet(int setIndex, DateTime timestamp, int repsInReserve) {
     if (setIndex < 0 || setIndex >= sets.length) return;
-    
+
+    // Reserved for future fatigue/effective-rep modeling.
+    final _ = repsInReserve;
+
     final completedSet = sets[setIndex];
-    
-    // 1. Update 1RM record
     update1RMFromSet(completedSet.repetitions, completedSet.weight);
 
-    // 2. Calculate metrics for this specific set
-    double setIntensity = oneRepetitionMax > 0 ? (completedSet.weight / oneRepetitionMax) : 0;
+    final setIntensity = oneRepetitionMax > 0 ? (completedSet.weight / oneRepetitionMax) : 0.0;
 
-    // 3. Pass data to each involved muscle
     for (var involvement in involvedMuscles) {
       involvement.muscle.train(
         timestamp: timestamp,
@@ -136,11 +161,8 @@ class Exercise {
     }
   }
 
-  /// Completes the entire exercise and notifies involved muscles.
-  /// If exercise has no sets, notifies muscles with zero intensity.
-  /// If exercise has sets, muscles should already be trained via completeSet().
+  /// Completes time-based exercises that have no configured sets.
   void completeExercise(DateTime timestamp) {
-    // If exercise has no sets, train all involved muscles with zero intensity.
     if (sets.isEmpty) {
       for (var involvement in involvedMuscles) {
         involvement.muscle.train(
@@ -152,8 +174,9 @@ class Exercise {
     }
   }
 
+  /// Updates stored 1RM only when the new estimate is higher.
   void update1RMFromSet(int reps, double weight) {
-    double newEstimate = calculateEpley1RM(reps, weight);
+    final newEstimate = calculateEpley1RM(reps, weight);
     if (newEstimate > oneRepetitionMax) {
       oneRepetitionMax = newEstimate;
     }

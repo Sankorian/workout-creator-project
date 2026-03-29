@@ -1,16 +1,35 @@
 import 'muscle_rules.dart';
 
+/// Represents one trainable muscle with growth/decay state and rule sets.
 class Muscle {
-  final String id; // Unique ID for storage
+  /// Stable identifier used for persistence.
+  final String id;
+
+  /// Display name (e.g. "Biceps").
   String name;
+
+  /// Current modeled growth value (typically in the 0..100 range).
   double growthLevel;
+
+  /// Recovery duration in days after a training event.
   double recoveryTime;
+
+  /// Time in days after training when inactivity decay can begin.
   double decayStartTime;
+
+  /// Last timestamp when this muscle was trained.
   DateTime? lastTrained;
+
+  /// Last timestamp when decay was applied.
   DateTime? lastDecayed;
+
+  /// Growth rules that contribute positive adaptation during training.
   Set<GrowthRule> growthRules;
+
+  /// Decay rules that reduce growth over time.
   Set<DecayRule> decayRules;
 
+  /// Creates a [Muscle] with optional persisted ID and custom rule sets.
   Muscle({
     String? id,
     required this.name,
@@ -25,7 +44,7 @@ class Muscle {
         growthRules = growthRules ?? {},
         decayRules = decayRules ?? {};
 
-  // JSON Serialization
+  /// Serializes the muscle model to JSON for local storage.
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
@@ -38,6 +57,7 @@ class Muscle {
     'decayRules': decayRules.map((r) => r.name).toList(),
   };
 
+  /// Rebuilds a [Muscle] from previously serialized JSON data.
   factory Muscle.fromJson(Map<String, dynamic> json) {
     return Muscle(
       id: json['id'],
@@ -52,10 +72,13 @@ class Muscle {
     );
   }
 
-  // Getters to calculate end times
+  /// Time when the recovery phase is considered complete.
   DateTime? get tRecoveryEnd => lastTrained?.add(Duration(hours: (recoveryTime * 24).toInt()));
+
+  /// Time when inactivity decay may start.
   DateTime? get tDecayStart => lastTrained?.add(Duration(hours: (decayStartTime * 24).toInt()));
 
+  /// Applies one training stimulus and updates growth using all growth rules.
   void train({
     required DateTime timestamp,
     required double intensity,
@@ -70,19 +93,25 @@ class Muscle {
         intensity: adjustedIntensity,
       );
     }
+
+    // Diminishing returns as growth approaches 100.
     growthLevel += totalGrowth * (1 - (growthLevel / 100));
     lastTrained = timestamp;
   }
 
+  /// Applies accumulated decay at [currentTime] using all decay rules.
   void applyDecay(DateTime currentTime) {
     double totalDecay = 0;
     for (var rule in decayRules) {
       totalDecay += rule.calculateDecay(this, currentTime);
     }
+
+    // Decay scales with current growth level.
     growthLevel -= totalDecay * (growthLevel / 100);
     lastDecayed = currentTime;
   }
 
+  /// Convenience list used when creating starter muscles in a fresh app state.
   static List<Muscle> getDefaultMuscles() {
     final defaultGrowthRules = <GrowthRule>{
       const IntensityGrowthRule(),
