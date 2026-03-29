@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/muscle.dart';
 import '../models/muscle_rules.dart';
 
+/// Screen for creating, editing, or viewing a [Muscle].
 class CreateMuscleScreen extends StatefulWidget {
   final Muscle? muscleToEdit;
   final bool isViewOnly;
@@ -34,17 +35,26 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
   final Set<GrowthRule> _selectedGrowthRules = {};
   final Set<DecayRule> _selectedDecayRules = {};
 
+  // Mode flags drive the code-like presentation and edit behavior.
   bool get _isEditing => widget.muscleToEdit != null && !widget.isViewOnly;
   bool get _isViewing => widget.isViewOnly;
 
+  String get _screenTitle =>
+      _isViewing ? 'View Muscle' : (_isEditing ? 'Edit Muscle' : 'Create Muscle');
+
+  String get _openingLine =>
+      _isViewing ? 'final myMuscle = Muscle(' : (_isEditing ? 'muscleToEdit' : 'final newMuscle = Muscle(');
+
   String _formatGrowthLevel(double value) => value.toStringAsFixed(2);
 
+  // Normalizes numeric text while preserving a predictable cursor position.
   void _normalizeGrowthLevelText() {
     final parsed = double.tryParse(_growthLevelController.text);
     if (parsed == null) return;
+    final formatted = _formatGrowthLevel(parsed);
     _growthLevelController.value = _growthLevelController.value.copyWith(
-      text: _formatGrowthLevel(parsed),
-      selection: TextSelection.collapsed(offset: _formatGrowthLevel(parsed).length),
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 
@@ -77,9 +87,10 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
     super.dispose();
   }
 
+  // Renders one constructor-like line in create/edit/view modes.
   Widget _buildCodeLine(String label, Widget input) {
-    String prefix = _isEditing ? '  ..$label = ' : '  $label: ';
-    if (_isViewing) prefix = '  $label: ';
+    final prefix = _isEditing && !_isViewing ? '  ..$label = ' : '  $label: ';
+    final suffix = _isEditing || _isViewing ? ';' : ',';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -92,7 +103,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
             Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
             input,
             const SizedBox(width: 4),
-            Text(_isEditing || _isViewing ? ';' : ',', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+            Text(suffix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
           ],
         ),
       ),
@@ -102,7 +113,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isViewing ? 'View Muscle' : (_isEditing ? 'Edit Muscle' : 'Create Muscle'))),
+      appBar: AppBar(title: Text(_screenTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
@@ -111,7 +122,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_isViewing ? 'final myMuscle = Muscle(' : (_isEditing ? 'muscleToEdit' : 'final newMuscle = Muscle('), 
+                Text(_openingLine,
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
                 _buildCodeLine('name', _isViewing 
                   ? Text('"${_nameController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))

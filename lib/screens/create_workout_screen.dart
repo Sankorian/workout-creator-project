@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/workout.dart';
 import '../models/exercise.dart';
 
+/// Screen for creating, editing, or viewing a [Workout].
 class CreateWorkoutScreen extends StatefulWidget {
   final Workout? workoutToEdit;
   final List<Exercise> availableExercises;
@@ -27,8 +28,15 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   late bool _randomOrder;
   final List<List<Exercise>> _batches = [];
 
+  // Mode flags drive the code-like constructor presentation.
   bool get _isEditing => widget.workoutToEdit != null && !widget.isViewOnly;
   bool get _isViewing => widget.isViewOnly;
+
+  String get _screenTitle =>
+      _isViewing ? 'View Workout' : (_isEditing ? 'Edit Workout' : 'Create Workout');
+
+  String get _openingLine =>
+      _isViewing ? 'final myWorkout = Workout(' : (_isEditing ? 'workoutToEdit' : 'final newWorkout = Workout(');
 
   @override
   void initState() {
@@ -52,9 +60,19 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
     super.dispose();
   }
 
+  // Displays booleans as code-like values and toggles them in edit/create mode.
+  Widget _buildToggleValue(bool value, {VoidCallback? onTap}) {
+    final text = Text(
+      value.toString(),
+      style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16),
+    );
+    return _isViewing ? text : InkWell(onTap: onTap, child: text);
+  }
+
+  // Renders one constructor-like line in create/edit/view modes.
   Widget _buildCodeLine(String label, Widget input) {
-    String prefix = _isEditing ? '  ..$label = ' : '  $label: ';
-    if (_isViewing) prefix = '  $label: ';
+    final prefix = _isEditing && !_isViewing ? '  ..$label = ' : '  $label: ';
+    final suffix = _isEditing || _isViewing ? ';' : ',';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -66,7 +84,8 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
           children: [
             Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
             input,
-            Text(_isEditing || _isViewing ? ' ;' : ' ,', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+            const SizedBox(width: 4),
+            Text(suffix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
           ],
         ),
       ),
@@ -76,7 +95,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isViewing ? 'View Workout' : (_isEditing ? 'Edit Workout' : 'Create Workout'))),
+      appBar: AppBar(title: Text(_screenTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
@@ -85,7 +104,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_isViewing ? 'final myWorkout = Workout(' : (_isEditing ? 'workoutToEdit' : 'final newWorkout = Workout('), 
+                Text(_openingLine,
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
                 _buildCodeLine('name', _isViewing 
                   ? Text('"${_nameController.text}"', 
@@ -111,22 +130,16 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                     ),
                   )),
                 _buildCodeLine('allowExerciseSelection', _isViewing 
-                  ? Text(_allowExerciseSelection.toString(), style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : InkWell(
+                  ? _buildToggleValue(_allowExerciseSelection)
+                  : _buildToggleValue(
+                      _allowExerciseSelection,
                       onTap: () => setState(() => _allowExerciseSelection = !_allowExerciseSelection),
-                      child: Text(
-                        _allowExerciseSelection.toString(),
-                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16),
-                      ),
                     )),
                 _buildCodeLine('randomBatchOrder', _isViewing 
-                  ? Text(_randomOrder.toString(), style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : InkWell(
+                  ? _buildToggleValue(_randomOrder)
+                  : _buildToggleValue(
+                      _randomOrder,
                       onTap: () => setState(() => _randomOrder = !_randomOrder),
-                      child: Text(
-                        _randomOrder.toString(),
-                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16),
-                      ),
                     )),
 
                 Padding(
@@ -215,8 +228,8 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
-                          // Validation: Ensure at least one exercise in at least one batch
-                          bool hasExercise = _batches.any((batch) => batch.isNotEmpty);
+                          // Require at least one exercise across all batches.
+                          final hasExercise = _batches.any((batch) => batch.isNotEmpty);
                           if (!hasExercise) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Please add at least one exercise to a batch.')),
@@ -266,6 +279,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
               return ListTile(
                 title: Text(ex.name),
                 onTap: () {
+                  // Add the selected exercise directly into the targeted batch.
                   setState(() => _batches[batchIdx].add(ex));
                   Navigator.pop(context);
                 },

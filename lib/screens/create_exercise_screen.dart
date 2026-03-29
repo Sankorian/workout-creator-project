@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/exercise.dart';
 import '../models/muscle.dart';
 
+/// Screen for creating, editing, or viewing an [Exercise].
 class CreateExerciseScreen extends StatefulWidget {
   final Exercise? exerciseToEdit;
   final List<Muscle> availableMuscles;
@@ -30,11 +31,20 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
   final List<Inv> _involvedMuscles = [];
   final List<ExerciseSet> _sets = [];
 
+  // Mode flags drive the code-style layout and editability.
   bool get _isEditing => widget.exerciseToEdit != null && !widget.isViewOnly;
   bool get _isViewing => widget.isViewOnly;
 
+  String get _screenTitle =>
+      _isViewing ? 'View Exercise' : (_isEditing ? 'Edit Exercise' : 'Create Exercise');
+
+  String get _openingLine => _isViewing
+      ? 'final myExercise = Exercise('
+      : (_isEditing ? 'exerciseToEdit' : 'final newExercise = Exercise(');
+
   String _formatOneRepMax(double value) => value.toStringAsFixed(2);
 
+  // Normalizes numeric text while preserving a predictable cursor position.
   void _normalizeOneRepMaxText() {
     final parsed = double.tryParse(_oneRepMaxController.text);
     if (parsed == null) return;
@@ -75,9 +85,30 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
     super.dispose();
   }
 
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required double width,
+    TextInputType? keyboardType,
+    VoidCallback? onEditingComplete,
+    ValueChanged<String>? onFieldSubmitted,
+  }) {
+    return SizedBox(
+      width: width,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        onEditingComplete: onEditingComplete,
+        onFieldSubmitted: onFieldSubmitted,
+        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+      ),
+    );
+  }
+
+  // Renders one constructor-like line in create/edit/view modes.
   Widget _buildCodeLine(String label, Widget input) {
-    String prefix = _isEditing ? '  ..$label = ' : '  $label: ';
-    if (_isViewing) prefix = '  $label: ';
+    final prefix = _isEditing && !_isViewing ? '  ..$label = ' : '  $label: ';
+    final suffix = _isEditing || _isViewing ? ';' : ',';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -85,10 +116,12 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
             input,
-            Text(_isEditing || _isViewing ? ' ;' : ' ,', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+            const SizedBox(width: 4),
+            Text(suffix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
           ],
         ),
       ),
@@ -98,7 +131,7 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isViewing ? 'View Exercise' : (_isEditing ? 'Edit Exercise' : 'Create Exercise'))),
+      appBar: AppBar(title: Text(_screenTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
@@ -107,51 +140,29 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_isViewing ? 'final myExercise = Exercise(' : (_isEditing ? 'exerciseToEdit' : 'final newExercise = Exercise('), 
+                Text(_openingLine,
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
                 _buildCodeLine('name', _isViewing 
                   ? Text('"${_nameController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
-                  : SizedBox(
-                      width: 200,
-                      child: TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                      ),
-                    )),
+                  : _buildInputField(controller: _nameController, width: 200)),
                 _buildCodeLine('description', _isViewing 
                   ? Text('"${_descriptionController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
-                  : SizedBox(
-                      width: 200,
-                      child: TextFormField(
-                        controller: _descriptionController,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                      ),
-                    )),
+                  : _buildInputField(controller: _descriptionController, width: 200)),
                 _buildCodeLine('oneRepetitionMax', _isViewing 
                   ? Text(_oneRepMaxController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : SizedBox(
+                  : _buildInputField(
+                      controller: _oneRepMaxController,
                       width: 100,
-                      child: TextFormField(
-                        controller: _oneRepMaxController,
-                        keyboardType: TextInputType.number,
-                        onEditingComplete: _normalizeOneRepMaxText,
-                        onFieldSubmitted: (_) => _normalizeOneRepMaxText(),
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                      ),
+                      keyboardType: TextInputType.number,
+                      onEditingComplete: _normalizeOneRepMaxText,
+                      onFieldSubmitted: (_) => _normalizeOneRepMaxText(),
                     )),
                 _buildCodeLine('pauseDuration', _isViewing 
                   ? Text(_pauseDurationController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : SizedBox(
+                  : _buildInputField(
+                      controller: _pauseDurationController,
                       width: 100,
-                      child: TextFormField(
-                        controller: _pauseDurationController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                      ),
+                      keyboardType: TextInputType.number,
                     )),
                 _buildCodeLine('exerciseDuration', _isViewing 
                   ? Row(
@@ -160,20 +171,10 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                         Text(_durationController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16)),
                       ],
                     )
-                  : SizedBox(
+                  : _buildInputField(
+                      controller: _durationController,
                       width: 180,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _durationController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                              style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                            ),
-                          ),
-                        ],
-                      ),
+                      keyboardType: TextInputType.number,
                     )),
                 
                 Padding(
@@ -334,6 +335,7 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
             TextButton(
               onPressed: () {
                 if (selectedMuscle != null) {
+                  // Persist the current slider value with the selected muscle.
                   setState(() => _involvedMuscles.add(Inv(muscle: selectedMuscle!, weight: weight)));
                   Navigator.pop(context);
                 }
@@ -352,30 +354,29 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add Set'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: repsController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Reps')),
-              TextField(controller: weightController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Weight (kg)')),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            TextButton(
-              onPressed: () {
-                setState(() => _sets.add(ExerciseSet(
-                  repetitions: int.tryParse(repsController.text) ?? 10,
-                  weight: double.tryParse(weightController.text) ?? 10.0,
-                )));
-                Navigator.pop(context);
-              },
-              child: const Text('Add'),
-            ),
+      builder: (context) => AlertDialog(
+        title: const Text('Add Set'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: repsController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Reps')),
+            TextField(controller: weightController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Weight (kg)')),
           ],
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              // Parse with defaults so partially filled dialogs still add a valid set.
+              setState(() => _sets.add(ExerciseSet(
+                repetitions: int.tryParse(repsController.text) ?? 10,
+                weight: double.tryParse(weightController.text) ?? 10.0,
+              )));
+              Navigator.pop(context);
+            },
+            child: const Text('Add'),
+          ),
+        ],
       ),
     );
   }

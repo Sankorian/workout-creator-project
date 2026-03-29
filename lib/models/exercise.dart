@@ -134,7 +134,7 @@ class Exercise {
   }
 
   /// Estimates 1RM from reps and load using the Epley formula.
-  double calculateEpley1RM(int reps, double weight) {
+  double calculate1RM(int reps, double weight) {
     if (reps <= 0) return 0;
     if (reps == 1) return weight;
     return weight * (1 + reps / 30.0);
@@ -161,7 +161,7 @@ class Exercise {
     }
   }
 
-  /// Completes time-based exercises that have no configured sets.
+  /// Completes exercises that have no configured sets (for example a time based exercise)
   void completeExercise(DateTime timestamp) {
     if (sets.isEmpty) {
       for (var involvement in involvedMuscles) {
@@ -176,7 +176,7 @@ class Exercise {
 
   /// Updates stored 1RM only when the new estimate is higher.
   void update1RMFromSet(int reps, double weight) {
-    final newEstimate = calculateEpley1RM(reps, weight);
+    final newEstimate = calculate1RM(reps, weight);
     if (newEstimate > oneRepetitionMax) {
       oneRepetitionMax = newEstimate;
     }

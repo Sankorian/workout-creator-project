@@ -6,6 +6,7 @@ import '../services/storage_service.dart';
 import 'workout_creator_screen.dart';
 import 'workout_selection_screen.dart';
 
+/// Entry screen that loads persisted data and routes to app flows.
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -26,11 +27,14 @@ class _MainScreenState extends State<MainScreen> {
     _loadData();
   }
 
+  /// Loads muscles first, then exercises/workouts that depend on them.
   Future<void> _loadData() async {
     final muscles = await _storageService.loadMuscles();
     final exercises = await _storageService.loadExercises(muscles);
     final workouts = await _storageService.loadWorkouts(muscles);
     _syncWorkoutExercises(workouts: workouts, exercises: exercises);
+
+    if (!mounted) return;
     setState(() {
       _myMuscles = muscles;
       _myExercises = exercises;
@@ -39,6 +43,7 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  /// Re-links workout exercise references to the latest in-memory exercise objects.
   void _syncWorkoutExercises({
     required List<Workout> workouts,
     required List<Exercise> exercises,
@@ -57,6 +62,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  /// Persists all collections after re-linking workout exercise references.
   Future<void> _saveData() async {
     _syncWorkoutExercises(workouts: _myWorkouts, exercises: _myExercises);
     await _storageService.saveMuscles(_myMuscles);
@@ -64,15 +70,17 @@ class _MainScreenState extends State<MainScreen> {
     await _storageService.saveWorkouts(_myWorkouts);
   }
 
-  void _navigateTo(Widget screen) {
-    Navigator.push(
+  /// Navigates to a screen and persists any mutations when returning.
+  Future<void> _navigateTo(Widget screen) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => screen),
-    ).then((_) {
-      _syncWorkoutExercises(workouts: _myWorkouts, exercises: _myExercises);
-      _saveData();
-      setState(() {});
-    });
+    );
+
+    _syncWorkoutExercises(workouts: _myWorkouts, exercises: _myExercises);
+    await _saveData();
+    if (!mounted) return;
+    setState(() {});
   }
 
   @override
@@ -81,7 +89,7 @@ class _MainScreenState extends State<MainScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    bool hasWorkouts = _myWorkouts.isNotEmpty;
+    final hasWorkouts = _myWorkouts.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
