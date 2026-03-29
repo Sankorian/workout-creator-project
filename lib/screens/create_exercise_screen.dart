@@ -49,8 +49,8 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
   void initState() {
     super.initState();
     final e = widget.exerciseToEdit;
-    _nameController = TextEditingController(text: e?.name ?? 'Bench Press');
-    _descriptionController = TextEditingController(text: e?.description ?? 'Standard bench press exercise');
+    _nameController = TextEditingController(text: e?.name ?? 'My Exercise');
+    _descriptionController = TextEditingController(text: e?.description ?? 'My Description');
     _oneRepMaxController = TextEditingController(
       text: _formatOneRepMax(e?.oneRepetitionMax ?? 20.0),
     );
@@ -158,7 +158,6 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(_durationController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16)),
-                        const Text(' // seconds', style: TextStyle(color: Colors.grey, fontFamily: 'monospace', fontSize: 14)),
                       ],
                     )
                   : SizedBox(
@@ -173,7 +172,6 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                               style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                             ),
                           ),
-                          const Text(' // seconds', style: TextStyle(color: Colors.grey, fontFamily: 'monospace', fontSize: 14)),
                         ],
                       ),
                     )),

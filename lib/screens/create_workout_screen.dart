@@ -22,7 +22,6 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _nameController;
-  late final TextEditingController _descriptionController;
   late BatchType _selectedBatchType;
   late bool _allowExerciseSelection;
   late bool _randomOrder;
@@ -36,8 +35,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
     super.initState();
     final w = widget.workoutToEdit;
     _nameController = TextEditingController(text: w?.name ?? 'My Workout');
-    _descriptionController = TextEditingController(text: w?.description ?? 'Enter description...');
-    _selectedBatchType = w?.batchType ?? BatchType.choice;
+    _selectedBatchType = w?.batchType ?? BatchType.alternating;
     _allowExerciseSelection = w?.allowExerciseSelection ?? true;
     _randomOrder = w?.randomBatchOrder ?? false;
 
@@ -51,7 +49,6 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -97,17 +94,6 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                     width: 200,
                     child: TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                      style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                    ),
-                  )),
-                _buildCodeLine('description', _isViewing 
-                  ? Text('"${_descriptionController.text}"', 
-                      style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
-                  : SizedBox(
-                    width: 200,
-                    child: TextFormField(
-                      controller: _descriptionController,
                       decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                       style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                     ),
@@ -241,7 +227,6 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                           final workout = Workout(
                             id: widget.workoutToEdit?.id,
                             name: _nameController.text,
-                            description: _descriptionController.text,
                             batchType: _selectedBatchType,
                             allowExerciseSelection: _allowExerciseSelection,
                             randomBatchOrder: _randomOrder,

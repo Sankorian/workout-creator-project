@@ -62,7 +62,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
       _selectedGrowthRules.addAll(m.growthRules);
       _selectedDecayRules.addAll(m.decayRules);
     } else {
-      _nameController = TextEditingController(text: 'Biceps');
+      _nameController = TextEditingController(text: 'My Muscle');
       _growthLevelController = TextEditingController(text: _formatGrowthLevel(0.0));
       _recoveryTimeController = TextEditingController(text: '2.0');
       _decayStartTimeController = TextEditingController(text: '10.0');
