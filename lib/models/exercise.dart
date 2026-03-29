@@ -146,6 +146,24 @@ class Exercise {
     }
   }
 
+  /// Completes the entire exercise and notifies involved muscles.
+  /// If exercise has no sets, notifies muscles with zero intensity/volume.
+  /// If exercise has sets, muscles should already be trained via completeSet().
+  void completeExercise(DateTime timestamp) {
+    // If exercise has no sets, train all involved muscles with zero intensity.
+    if (sets.isEmpty) {
+      for (var involvement in involvedMuscles) {
+        involvement.muscle.train(
+          timestamp: timestamp,
+          intensity: 0,
+          volume: 0,
+          effectiveReps: 0,
+          involvementFactor: involvement.weight,
+        );
+      }
+    }
+  }
+
   void update1RMFromSet(int reps, double weight) {
     double newEstimate = calculateEpley1RM(reps, weight);
     if (newEstimate > oneRepetitionMax) {

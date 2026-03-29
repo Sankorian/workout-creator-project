@@ -435,6 +435,11 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   void _completeExerciseAction() {
+    final exercise = _currentExercise;
+    if (exercise != null) {
+      exercise.completeExercise(DateTime.now());
+    }
+    
     final nextUnfinishedIndex = _findNextUnfinishedExerciseIndex(fromIndex: _currentExerciseIndex);
     if (nextUnfinishedIndex == null) {
       _endExercise();

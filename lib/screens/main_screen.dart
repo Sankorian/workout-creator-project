@@ -105,12 +105,7 @@ class _MainScreenState extends State<MainScreen> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: hasWorkouts 
-                  ? () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => WorkoutSelectionScreen(workouts: _myWorkouts),
-                      ),
-                    )
+                  ? () => _navigateTo(WorkoutSelectionScreen(workouts: _myWorkouts))
                   : null,
               style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
               child: const Text('Start Workout'),

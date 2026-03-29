@@ -33,13 +33,27 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
   bool get _isEditing => widget.exerciseToEdit != null && !widget.isViewOnly;
   bool get _isViewing => widget.isViewOnly;
 
+  String _formatOneRepMax(double value) => value.toStringAsFixed(2);
+
+  void _normalizeOneRepMaxText() {
+    final parsed = double.tryParse(_oneRepMaxController.text);
+    if (parsed == null) return;
+    final formatted = _formatOneRepMax(parsed);
+    _oneRepMaxController.value = _oneRepMaxController.value.copyWith(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     final e = widget.exerciseToEdit;
     _nameController = TextEditingController(text: e?.name ?? 'Bench Press');
     _descriptionController = TextEditingController(text: e?.description ?? 'Standard bench press exercise');
-    _oneRepMaxController = TextEditingController(text: (e?.oneRepetitionMax ?? 20.0).toString());
+    _oneRepMaxController = TextEditingController(
+      text: _formatOneRepMax(e?.oneRepetitionMax ?? 20.0),
+    );
     _pauseDurationController = TextEditingController(text: (e?.pauseDuration ?? 60).toString());
     _durationController = TextEditingController(text: (e?.exerciseDuration ?? 0).toString());
     
@@ -122,6 +136,8 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                       child: TextFormField(
                         controller: _oneRepMaxController,
                         keyboardType: TextInputType.number,
+                        onEditingComplete: _normalizeOneRepMaxText,
+                        onFieldSubmitted: (_) => _normalizeOneRepMaxText(),
                         decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),

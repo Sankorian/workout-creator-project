@@ -38,6 +38,17 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
   bool get _isEditing => widget.muscleToEdit != null && !widget.isViewOnly;
   bool get _isViewing => widget.isViewOnly;
 
+  String _formatGrowthLevel(double value) => value.toStringAsFixed(2);
+
+  void _normalizeGrowthLevelText() {
+    final parsed = double.tryParse(_growthLevelController.text);
+    if (parsed == null) return;
+    _growthLevelController.value = _growthLevelController.value.copyWith(
+      text: _formatGrowthLevel(parsed),
+      selection: TextSelection.collapsed(offset: _formatGrowthLevel(parsed).length),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -45,14 +56,14 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
     
     if (m != null) {
       _nameController = TextEditingController(text: m.name);
-      _growthLevelController = TextEditingController(text: m.growthLevel.toString());
+      _growthLevelController = TextEditingController(text: _formatGrowthLevel(m.growthLevel));
       _recoveryTimeController = TextEditingController(text: m.recoveryTime.toString());
       _decayStartTimeController = TextEditingController(text: m.decayStartTime.toString());
       _selectedGrowthRules.addAll(m.growthRules);
       _selectedDecayRules.addAll(m.decayRules);
     } else {
       _nameController = TextEditingController(text: 'Biceps');
-      _growthLevelController = TextEditingController(text: '0.0');
+      _growthLevelController = TextEditingController(text: _formatGrowthLevel(0.0));
       _recoveryTimeController = TextEditingController(text: '2.0');
       _decayStartTimeController = TextEditingController(text: '10.0');
     }
@@ -120,6 +131,8 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                       child: TextFormField(
                         controller: _growthLevelController,
                         keyboardType: TextInputType.number,
+                        onEditingComplete: _normalizeGrowthLevelText,
+                        onFieldSubmitted: (_) => _normalizeGrowthLevelText(),
                         decoration: const InputDecoration(isDense: true, border: InputBorder.none),
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),
