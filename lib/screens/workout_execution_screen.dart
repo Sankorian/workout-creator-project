@@ -362,9 +362,27 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     return _areAllSetsDone(exercise) && _isExerciseDurationDone(exercise);
   }
 
-  void _nextExercise() {
-    if (_currentExerciseIndex >= _flatExercises.length - 1) return;
-    final nextIndex = _currentExerciseIndex + 1;
+  int? _findNextUnfinishedExerciseIndex({required int fromIndex}) {
+    if (_flatExercises.isEmpty) return null;
+    if (_flatExercises.length == 1) return null;
+
+    for (int step = 1; step < _flatExercises.length; step++) {
+      final candidateIndex = (fromIndex + step) % _flatExercises.length;
+      if (!_isExerciseFullyCompleted(candidateIndex)) {
+        return candidateIndex;
+      }
+    }
+
+    return null;
+  }
+
+  void _moveToExercise(int nextIndex) {
+    if (nextIndex < 0 || nextIndex >= _flatExercises.length || nextIndex == _currentExerciseIndex) return;
+
+    if (_isChoiceBatchMode && _currentExercise != null) {
+      _navigatedAwayAfterChoice.add(_currentExerciseIndex);
+    }
+
     _persistCurrentExerciseState();
     _resolveExerciseForExecutionIndex(nextIndex);
     setState(() {
@@ -374,6 +392,10 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     });
 
     _autoStartCurrentExerciseIfEligible();
+  }
+
+  void _nextExercise() {
+    _moveToExercise(_currentExerciseIndex + 1);
   }
 
   void _endExercise() {
@@ -413,11 +435,12 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   void _completeExerciseAction() {
-    if (_currentExerciseIndex == _flatExercises.length - 1) {
+    final nextUnfinishedIndex = _findNextUnfinishedExerciseIndex(fromIndex: _currentExerciseIndex);
+    if (nextUnfinishedIndex == null) {
       _endExercise();
       return;
     }
-    _nextExercise();
+    _moveToExercise(nextUnfinishedIndex);
   }
 
   void _startPauseDurationTimer(int seconds) {
@@ -888,12 +911,13 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
     final exercise = _currentExercise;
     final needsChoiceSelection = _requiresChoiceSelectionAt(_currentExerciseIndex);
-    final isLastExercise = _currentExerciseIndex == _flatExercises.length - 1;
+    final nextUnfinishedExerciseIndex = _findNextUnfinishedExerciseIndex(fromIndex: _currentExerciseIndex);
     final canProceedToNextExercise = _canProceedToNextExercise(exercise) ||
         (_isPauseDurationTimerRunning &&
             _areAllSetsDone(exercise) &&
             ((exercise?.exerciseDuration ?? 0) <= 0));
-    final exerciseActionLabel = isLastExercise ? 'endExercise();' : 'nextExercise();';
+    final exerciseActionLabel =
+        nextUnfinishedExerciseIndex == null ? 'endExercise();' : 'nextExercise();';
     final hasSets = exercise != null && _hasSets(exercise);
     final showStartExerciseButton = exercise != null && _shouldShowStartExerciseButton(exercise);
 

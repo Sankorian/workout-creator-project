@@ -114,5 +114,45 @@ void main() {
       expect(isActionButtonEnabled(tester, 'endExercise();'), isTrue);
     },
   );
+
+  testWidgets(
+    'selection mode does not finish when rightmost done first and goes to next unfinished',
+    (tester) async {
+      final workout = Workout(
+        name: 'Selectable Workout',
+        batches: [
+          [createExercise('Ex1')],
+          [createExercise('Ex2')],
+          [createExercise('Ex3')],
+        ],
+        batchType: BatchType.choice,
+        allowExerciseSelection: true,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: WorkoutExecutionScreen(workout: workout)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.fling(find.byType(GestureDetector).first, const Offset(-500, 0), 1500);
+      await tester.pumpAndSettle();
+      await tester.fling(find.byType(GestureDetector).first, const Offset(-500, 0), 1500);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ex3'), findsWidgets);
+
+      await tester.tap(find.text('false'));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(ElevatedButton, 'nextExercise();'), findsOneWidget);
+      expect(find.widgetWithText(ElevatedButton, 'endExercise();'), findsNothing);
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'nextExercise();'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ex1'), findsWidgets);
+      expect(find.text('Workout.complete();'), findsNothing);
+    },
+  );
 }
 
