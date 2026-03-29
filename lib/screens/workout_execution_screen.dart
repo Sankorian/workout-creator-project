@@ -14,9 +14,10 @@ class WorkoutExecutionScreen extends StatefulWidget {
 }
 
 class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
-  late List<Exercise> _flatExercises;
+  late List<Exercise?> _flatExercises;
   final List<int> _batchIndexByExercise = [];
   final Set<int> _resolvedBatchIndices = {};
+  final Set<int> _navigatedAwayAfterChoice = {};
   int _currentExerciseIndex = 0;
   int _currentSetIndex = 0;
   
@@ -42,11 +43,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     _initializeExecutionExercises();
 
     for (int i = 0; i < _flatExercises.length; i++) {
-      _setIndexByExercise[i] = 0;
-      _remainingExerciseDurationByExercise[i] = _flatExercises[i].exerciseDuration;
-      if (_flatExercises[i].exerciseDuration <= 0) {
-        _startedExerciseIndices.add(i);
-      }
+      _initializeExerciseStateForIndex(i);
     }
 
     _restoreCurrentExerciseState();
@@ -59,8 +56,41 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   bool get _usesSingleExercisePerBatch {
+    if (widget.workout.batchType == BatchType.choice) return true;
     return widget.workout.batchType == BatchType.randomPick ||
         widget.workout.batchType == BatchType.alternating;
+  }
+
+  bool get _isChoiceBatchMode => widget.workout.batchType == BatchType.choice;
+
+  List<Exercise> _batchForExecutionIndex(int executionIndex) {
+    final batchIndex = _batchIndexByExercise[executionIndex];
+    return widget.workout.batches[batchIndex];
+  }
+
+  Exercise? _exerciseAt(int executionIndex) {
+    if (executionIndex < 0 || executionIndex >= _flatExercises.length) return null;
+    return _flatExercises[executionIndex];
+  }
+
+  Exercise? get _currentExercise => _exerciseAt(_currentExerciseIndex);
+
+  bool _requiresChoiceSelectionAt(int executionIndex) {
+    if (!_isChoiceBatchMode) return false;
+    if (executionIndex < 0 || executionIndex >= _flatExercises.length) return false;
+    final batch = _batchForExecutionIndex(executionIndex);
+    return batch.length > 1 && _flatExercises[executionIndex] == null;
+  }
+
+  void _initializeExerciseStateForIndex(int executionIndex) {
+    final exercise = _exerciseAt(executionIndex);
+    _setIndexByExercise[executionIndex] = 0;
+    _remainingExerciseDurationByExercise[executionIndex] = exercise?.exerciseDuration ?? 0;
+    if (exercise != null && exercise.exerciseDuration <= 0) {
+      _startedExerciseIndices.add(executionIndex);
+    } else {
+      _startedExerciseIndices.remove(executionIndex);
+    }
   }
 
   void _initializeExecutionExercises() {
@@ -77,12 +107,27 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       }
 
       _batchIndexByExercise.addAll(batchOrder);
-      _flatExercises = [
-        for (final batchIndex in batchOrder) widget.workout.batches[batchIndex].first,
-      ];
+      if (_isChoiceBatchMode) {
+        _flatExercises = [
+          for (final batchIndex in batchOrder)
+            widget.workout.batches[batchIndex].length == 1
+                ? widget.workout.batches[batchIndex].first
+                : null,
+        ];
 
-      if (_flatExercises.isNotEmpty) {
-        _resolveExerciseForExecutionIndex(0);
+        for (int i = 0; i < _flatExercises.length; i++) {
+          if (_flatExercises[i] != null) {
+            _resolvedBatchIndices.add(_batchIndexByExercise[i]);
+          }
+        }
+      } else {
+        _flatExercises = [
+          for (final batchIndex in batchOrder) widget.workout.batches[batchIndex].first,
+        ];
+
+        if (_flatExercises.isNotEmpty) {
+          _resolveExerciseForExecutionIndex(0);
+        }
       }
       return;
     }
@@ -105,6 +150,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void _resolveExerciseForExecutionIndex(int exerciseIndex) {
     if (!_usesSingleExercisePerBatch) return;
     if (exerciseIndex < 0 || exerciseIndex >= _flatExercises.length) return;
+    if (_isChoiceBatchMode) return;
 
     final batchIndex = _batchIndexByExercise[exerciseIndex];
     if (_resolvedBatchIndices.contains(batchIndex)) return;
@@ -124,13 +170,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     }
 
     _flatExercises[exerciseIndex] = selectedExercise;
-    _setIndexByExercise[exerciseIndex] = 0;
-    _remainingExerciseDurationByExercise[exerciseIndex] = selectedExercise.exerciseDuration;
-    if (selectedExercise.exerciseDuration <= 0) {
-      _startedExerciseIndices.add(exerciseIndex);
-    } else {
-      _startedExerciseIndices.remove(exerciseIndex);
-    }
+    _initializeExerciseStateForIndex(exerciseIndex);
 
     _resolvedBatchIndices.add(batchIndex);
   }
@@ -138,8 +178,9 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void _initControllers() {
     _disposeControllers();
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
-    
-    final exercise = _flatExercises[_currentExerciseIndex];
+
+    final exercise = _currentExercise;
+    if (exercise == null) return;
     for (int i = 0; i < exercise.sets.length; i++) {
       _weightControllers[i] = TextEditingController(text: exercise.sets[i].weight.toString());
       _repsControllers[i] = TextEditingController(text: exercise.sets[i].repetitions.toString());
@@ -170,9 +211,10 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
 
     _currentSetIndex = _setIndexByExercise[_currentExerciseIndex] ?? 0;
+    final exercise = _currentExercise;
     _remainingExerciseDurationSeconds =
         _remainingExerciseDurationByExercise[_currentExerciseIndex] ??
-            _flatExercises[_currentExerciseIndex].exerciseDuration;
+            (exercise?.exerciseDuration ?? 0);
   }
 
   bool _isCurrentExerciseStarted() {
@@ -180,6 +222,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   bool _canStartExerciseDurationCountdown() {
+    if (_currentExercise == null) return false;
     return _isCurrentExerciseStarted() &&
         !_isPauseDurationTimerRunning &&
         _remainingExerciseDurationSeconds > 0 &&
@@ -196,7 +239,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     if (widget.workout.allowExerciseSelection) return;
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
 
-    final exercise = _flatExercises[_currentExerciseIndex];
+    final exercise = _currentExercise;
+    if (exercise == null) return;
     if (!_shouldShowStartExerciseButton(exercise)) return;
     if (_isPauseDurationTimerRunning) return;
 
@@ -206,7 +250,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   bool _isExerciseFullyCompleted(int exerciseIndex) {
     if (exerciseIndex < 0 || exerciseIndex >= _flatExercises.length) return false;
 
-    final exercise = _flatExercises[exerciseIndex];
+    final exercise = _exerciseAt(exerciseIndex);
+    if (exercise == null) return false;
     final setIndex = _setIndexByExercise[exerciseIndex] ?? 0;
     final allSetsDone = setIndex >= exercise.sets.length;
     final durationDone = (exercise.exerciseDuration <= 0) ||
@@ -223,6 +268,10 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     if (index < 0 || index >= _flatExercises.length || index == _currentExerciseIndex) return;
     if (!_canSwipeExercises()) return;
 
+    if (_isChoiceBatchMode && _currentExercise != null) {
+      _navigatedAwayAfterChoice.add(_currentExerciseIndex);
+    }
+
     _persistCurrentExerciseState();
     _resolveExerciseForExecutionIndex(index);
     setState(() {
@@ -234,7 +283,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   void _startCurrentExercise() {
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
-    final exercise = _flatExercises[_currentExerciseIndex];
+    final exercise = _currentExercise;
+    if (exercise == null) return;
 
     setState(() {
       if (_isPauseDurationTimerRunning) {
@@ -260,6 +310,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     }
 
     if (_remainingExerciseDurationSeconds <= 0) return;
+    if (_currentExercise == null) return;
 
     if (mounted) {
       setState(() {
@@ -296,14 +347,18 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     return '$mm:$ss';
   }
 
-  bool _areAllSetsDone(Exercise exercise) => _currentSetIndex >= exercise.sets.length;
+  bool _areAllSetsDone(Exercise? exercise) {
+    if (exercise == null) return false;
+    return _currentSetIndex >= exercise.sets.length;
+  }
 
-  bool _isExerciseDurationDone(Exercise exercise) {
+  bool _isExerciseDurationDone(Exercise? exercise) {
+    if (exercise == null) return false;
     if (exercise.exerciseDuration <= 0) return true;
     return _remainingExerciseDurationSeconds <= 0;
   }
 
-  bool _canProceedToNextExercise(Exercise exercise) {
+  bool _canProceedToNextExercise(Exercise? exercise) {
     return _areAllSetsDone(exercise) && _isExerciseDurationDone(exercise);
   }
 
@@ -330,6 +385,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   Future<void> _handleBackPressedDuringWorkout() async {
+    if (_tryResetChoiceSelectionOnBack()) return;
     if (_isBackDialogOpen) return;
 
     _isBackDialogOpen = true;
@@ -399,7 +455,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void _completeSet() {
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
     if (!_isCurrentExerciseStarted()) return;
-    final exercise = _flatExercises[_currentExerciseIndex];
+    final exercise = _currentExercise;
+    if (exercise == null) return;
     if (_currentSetIndex >= exercise.sets.length) return;
 
     final set = exercise.sets[_currentSetIndex];
@@ -417,6 +474,58 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   bool _hasDescription(Exercise exercise) => exercise.description.trim().isNotEmpty;
+
+  void _selectChoiceExercise(int executionIndex, Exercise exercise) {
+    if (executionIndex < 0 || executionIndex >= _flatExercises.length) return;
+
+    setState(() {
+      _flatExercises[executionIndex] = exercise;
+      _resolvedBatchIndices.add(_batchIndexByExercise[executionIndex]);
+      _navigatedAwayAfterChoice.remove(executionIndex);
+      _initializeExerciseStateForIndex(executionIndex);
+
+      if (executionIndex == _currentExerciseIndex) {
+        _restoreCurrentExerciseState();
+      }
+    });
+
+    if (executionIndex == _currentExerciseIndex) {
+      _initControllers();
+      _autoStartCurrentExerciseIfEligible();
+    }
+  }
+
+  bool _tryResetChoiceSelectionOnBack() {
+    if (!_isChoiceBatchMode) return false;
+    if (_currentExerciseIndex < 0 || _currentExerciseIndex >= _flatExercises.length) return false;
+
+    final currentExercise = _currentExercise;
+    if (currentExercise == null) return false;
+
+    final batch = _batchForExecutionIndex(_currentExerciseIndex);
+    if (batch.length <= 1) return false;
+    if (_navigatedAwayAfterChoice.contains(_currentExerciseIndex)) return false;
+    if ((_setIndexByExercise[_currentExerciseIndex] ?? 0) > 0) return false;
+
+    final hasStartedDurationTimer =
+        currentExercise.exerciseDuration > 0 && _startedExerciseIndices.contains(_currentExerciseIndex);
+    if (hasStartedDurationTimer || _isExerciseDurationCountdownRunning) return false;
+
+    setState(() {
+      _flatExercises[_currentExerciseIndex] = null;
+      _resolvedBatchIndices.remove(_batchIndexByExercise[_currentExerciseIndex]);
+      _navigatedAwayAfterChoice.remove(_currentExerciseIndex);
+
+      _setIndexByExercise[_currentExerciseIndex] = 0;
+      _remainingExerciseDurationByExercise[_currentExerciseIndex] = 0;
+      _startedExerciseIndices.remove(_currentExerciseIndex);
+      _currentSetIndex = 0;
+      _remainingExerciseDurationSeconds = 0;
+    });
+
+    _initControllers();
+    return true;
+  }
 
   bool _hasSets(Exercise exercise) => exercise.sets.isNotEmpty;
 
@@ -482,6 +591,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
                 children: List.generate(count, (index) {
                   final isActive = highlightCurrent && index == _currentExerciseIndex;
                   final isCompleted = _isExerciseFullyCompleted(index);
+                  final exercise = _exerciseAt(index);
+                  final label = exercise?.name ?? '${index + 1}';
 
                   final backgroundColor = isActive
                       ? Colors.blue
@@ -494,14 +605,16 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       width: blockWidth,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                       decoration: BoxDecoration(
                         color: backgroundColor,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        '${index + 1}',
+                          label,
                         textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.bold,
@@ -691,6 +804,36 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     );
   }
 
+  Widget _buildChoiceButtonsSection(int executionIndex) {
+    final batch = _batchForExecutionIndex(executionIndex);
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const Text(
+          'chooseExercise();',
+          style: TextStyle(fontFamily: 'monospace', fontSize: 18),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        for (int i = 0; i < batch.length; i++) ...[
+          ElevatedButton(
+            onPressed: () => _selectChoiceExercise(executionIndex, batch[i]),
+            child: Text(
+              batch[i].name,
+              style: const TextStyle(fontFamily: 'monospace'),
+            ),
+          ),
+          if (i < batch.length - 1)
+            const SizedBox(height: 8),
+        ],
+      ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isFinished) {
@@ -743,13 +886,16 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       );
     }
 
-    final exercise = _flatExercises[_currentExerciseIndex];
+    final exercise = _currentExercise;
+    final needsChoiceSelection = _requiresChoiceSelectionAt(_currentExerciseIndex);
     final isLastExercise = _currentExerciseIndex == _flatExercises.length - 1;
     final canProceedToNextExercise = _canProceedToNextExercise(exercise) ||
-        (_isPauseDurationTimerRunning && _areAllSetsDone(exercise));
+        (_isPauseDurationTimerRunning &&
+            _areAllSetsDone(exercise) &&
+            ((exercise?.exerciseDuration ?? 0) <= 0));
     final exerciseActionLabel = isLastExercise ? 'endExercise();' : 'nextExercise();';
-    final hasSets = _hasSets(exercise);
-    final showStartExerciseButton = _shouldShowStartExerciseButton(exercise);
+    final hasSets = exercise != null && _hasSets(exercise);
+    final showStartExerciseButton = exercise != null && _shouldShowStartExerciseButton(exercise);
 
     return PopScope(
       canPop: false,
@@ -781,14 +927,18 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
                 children: [
                   _buildExerciseProgressOverview(),
                   const SizedBox(height: 16),
-                  _buildExerciseTitleAndDescription(exercise),
-                  const SizedBox(height: 30),
+                  if (needsChoiceSelection)
+                    _buildChoiceButtonsSection(_currentExerciseIndex)
+                  else if (exercise != null) ...[
+                    _buildExerciseTitleAndDescription(exercise),
+                    const SizedBox(height: 30),
+                  ],
 
                   if (hasSets) _buildSetTableSection(exercise) else const Spacer(),
 
-                  if (_showPauseDurationTimer(exercise)) _buildPauseTimerSection(),
+                  if (exercise != null && _showPauseDurationTimer(exercise)) _buildPauseTimerSection(),
                   if (showStartExerciseButton) _buildStartExerciseButton(),
-                  if (_showExerciseDurationTimer(exercise)) _buildExerciseDurationSection(),
+                  if (exercise != null && _showExerciseDurationTimer(exercise)) _buildExerciseDurationSection(),
                   _buildExerciseActionButton(
                     canProceedToNextExercise: canProceedToNextExercise,
                     exerciseActionLabel: exerciseActionLabel,
