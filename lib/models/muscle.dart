@@ -59,21 +59,15 @@ class Muscle {
   void train({
     required DateTime timestamp,
     required double intensity,
-    required double volume,
-    required int effectiveReps,
     required double involvementFactor, 
   }) {
     double totalGrowth = 0;
     double adjustedIntensity = intensity * involvementFactor;
-    double adjustedVolume = volume * involvementFactor;
-    double adjustedEffectiveReps = effectiveReps * involvementFactor;
 
     for (var rule in growthRules) {
       totalGrowth += rule.calculateGrowth(
         muscle: this,
         intensity: adjustedIntensity,
-        volume: adjustedVolume,
-        effectiveReps: adjustedEffectiveReps,
       );
     }
     growthLevel += totalGrowth * (1 - (growthLevel / 100));
@@ -92,7 +86,6 @@ class Muscle {
   static List<Muscle> getDefaultMuscles() {
     final defaultGrowthRules = <GrowthRule>{
       const IntensityGrowthRule(),
-      const EffectiveRepsGrowthRule(),
       const TimingGrowthRule(),
     };
     final defaultDecayRules = <DecayRule>{

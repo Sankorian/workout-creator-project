@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'muscle.dart';
 
 /// Represents how much a specific muscle is involved in an exercise.
@@ -106,9 +105,6 @@ class Exercise {
     );
   }
 
-  /// Total volume calculated for this exercise configuration.
-  double get totalVolume => sets.fold(0, (sum, set) => sum + (set.repetitions * set.weight));
-
   /// Calculates the estimated 1RM using the Epley formula.
   double calculateEpley1RM(int reps, double weight) {
     if (reps <= 0) return 0;
@@ -129,25 +125,19 @@ class Exercise {
 
     // 2. Calculate metrics for this specific set
     double setIntensity = oneRepetitionMax > 0 ? (completedSet.weight / oneRepetitionMax) : 0;
-    double setVolume = completedSet.repetitions * completedSet.weight;
-    
-    // effectiveReps = 6 - repsInReserve (clamped to 0-6)
-    int effectiveReps = max(0, 6 - repsInReserve);
 
     // 3. Pass data to each involved muscle
     for (var involvement in involvedMuscles) {
       involvement.muscle.train(
         timestamp: timestamp,
         intensity: setIntensity,
-        volume: setVolume,
-        effectiveReps: effectiveReps,
         involvementFactor: involvement.weight,
       );
     }
   }
 
   /// Completes the entire exercise and notifies involved muscles.
-  /// If exercise has no sets, notifies muscles with zero intensity/volume.
+  /// If exercise has no sets, notifies muscles with zero intensity.
   /// If exercise has sets, muscles should already be trained via completeSet().
   void completeExercise(DateTime timestamp) {
     // If exercise has no sets, train all involved muscles with zero intensity.
@@ -156,8 +146,6 @@ class Exercise {
         involvement.muscle.train(
           timestamp: timestamp,
           intensity: 0,
-          volume: 0,
-          effectiveReps: 0,
           involvementFactor: involvement.weight,
         );
       }

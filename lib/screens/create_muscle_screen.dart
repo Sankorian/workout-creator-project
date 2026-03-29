@@ -23,7 +23,6 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
   final List<GrowthRule> _availableGrowthRules = [
     const SimpleGrowthRule(),
     const IntensityGrowthRule(),
-    const EffectiveRepsGrowthRule(),
     const TimingGrowthRule(),
   ];
 

@@ -7,15 +7,12 @@ abstract class GrowthRule {
   double calculateGrowth({
     required Muscle muscle,
     required double intensity,
-    required double volume,
-    required double effectiveReps,
   });
 
   static GrowthRule? fromName(String name) {
     switch (name) {
       case 'Simple': return const SimpleGrowthRule();
       case 'Intensity': return const IntensityGrowthRule();
-      case 'Effective Reps': return const EffectiveRepsGrowthRule();
       case 'Timing': return const TimingGrowthRule();
       default: return null;
     }
@@ -42,25 +39,19 @@ abstract class DecayRule {
 class SimpleGrowthRule extends GrowthRule {
   const SimpleGrowthRule() : super('Simple');
   @override
-  double calculateGrowth({required Muscle muscle, required double intensity, required double volume, required double effectiveReps}) => 1.0;
+  double calculateGrowth({required Muscle muscle, required double intensity}) => 1.0;
 }
 
 class IntensityGrowthRule extends GrowthRule {
   const IntensityGrowthRule() : super('Intensity');
   @override
-  double calculateGrowth({required Muscle muscle, required double intensity, required double volume, required double effectiveReps}) => intensity;
-}
-
-class EffectiveRepsGrowthRule extends GrowthRule {
-  const EffectiveRepsGrowthRule() : super('Effective Reps');
-  @override
-  double calculateGrowth({required Muscle muscle, required double intensity, required double volume, required double effectiveReps}) => effectiveReps * 0.2;
+  double calculateGrowth({required Muscle muscle, required double intensity}) => intensity;
 }
 
 class TimingGrowthRule extends GrowthRule {
   const TimingGrowthRule() : super('Timing');
   @override
-  double calculateGrowth({required Muscle muscle, required double intensity, required double volume, required double effectiveReps}) {
+  double calculateGrowth({required Muscle muscle, required double intensity}) {
     if (muscle.lastTrained == null) return 1.0;
     final now = DateTime.now();
     final recoveryEnd = muscle.tRecoveryEnd!;
