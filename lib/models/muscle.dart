@@ -1,14 +1,19 @@
 import 'muscle_rules.dart';
 
-/// Represents one trainable muscle with growth/decay state and rule sets.
+/// Represents one trainable muscle with growth/decay state and rule sets. But
+/// this code object could also be used for other entities like memory, or
+/// languages - "The brain is like a muscle"...
 class Muscle {
   /// Stable identifier used for persistence.
   final String id;
 
-  /// Display name (e.g. "Biceps").
+  /// Display name (for example "Biceps").
   String name;
 
-  /// Current modeled growth value (typically in the 0..100 range).
+  /// Current modeled growth value (should be in the 0..100 range). This is just
+  /// a range to make progress (and regress) visible. A suitable start value
+  /// would consider 0 being the muscle state without working out for a long
+  /// time and 100 for the (never reachable) genetic maximum.
   double growthLevel;
 
   /// Recovery duration in days after a training event.
@@ -23,7 +28,8 @@ class Muscle {
   /// Last timestamp when decay was applied.
   DateTime? lastDecayed;
 
-  /// Growth rules that contribute positive adaptation during training.
+  /// Growth rules that contribute positive adaptation during training. User can
+  /// choose which apply - giving meaning to the growthLevel as well.
   Set<GrowthRule> growthRules;
 
   /// Decay rules that reduce growth over time.

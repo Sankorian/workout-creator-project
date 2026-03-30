@@ -26,6 +26,7 @@ class _WorkoutMuscleStats {
   });
 }
 
+/// Displays workouts ranked by selected muscle-readiness metric.
 class WorkoutSelectionScreen extends StatefulWidget {
   final List<Workout> workouts;
 
@@ -41,6 +42,33 @@ class WorkoutSelectionScreen extends StatefulWidget {
 class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
   _DisplayMetric _displayMetric = _DisplayMetric.recovered;
 
+  String get _metricHeaderText =>
+      _displayMetric == _DisplayMetric.recovered ? 'Muscles ready' : 'Muscles decaying';
+
+  // Sort ratio switches between recovered and decaying counts.
+  double _ratioForMetric(_WorkoutMuscleStats stats, int totalMuscles) {
+    if (totalMuscles <= 0) return 0.0;
+    return _displayMetric == _DisplayMetric.recovered
+        ? stats.recoveredCount / totalMuscles
+        : stats.decayingCount / totalMuscles;
+  }
+
+  // Displayed counter mirrors the active header metric.
+  int _countForMetric(_WorkoutMuscleStats stats) {
+    return _displayMetric == _DisplayMetric.recovered
+        ? stats.recoveredCount
+        : stats.decayingCount;
+  }
+
+  void _toggleMetric() {
+    setState(() {
+      _displayMetric = _displayMetric == _DisplayMetric.recovered
+          ? _DisplayMetric.decaying
+          : _DisplayMetric.recovered;
+    });
+  }
+
+  // Classifies each muscle into one lifecycle phase for summary counts.
   _MuscleState _classifyMuscleState(Muscle muscle, DateTime now) {
     if (muscle.lastTrained == null) {
       // Never trained muscles are shown as ready/recovered.
@@ -100,29 +128,19 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
   Widget build(BuildContext context) {
     final now = DateTime.now();
 
-    // Build stats for each workout and sort by selected metric (highest first).
+    // Build stats for each workout and sort by the active metric (highest first).
     final workoutStatsEntries = widget.workouts.map((workout) {
       final stats = _buildWorkoutMuscleStats(workout, now);
       final totalMuscles = stats.decayingCount + stats.recoveredCount + stats.regeneratingCount;
-      final recoveredRatio = totalMuscles > 0 ? stats.recoveredCount / totalMuscles : 0.0;
-      final decayingRatio = totalMuscles > 0 ? stats.decayingCount / totalMuscles : 0.0;
       return (
         workout: workout,
         stats: stats,
         totalMuscles: totalMuscles,
-        recoveredRatio: recoveredRatio,
-        decayingRatio: decayingRatio,
+        metricRatio: _ratioForMetric(stats, totalMuscles),
       );
     }).toList();
 
-    // Sort based on selected metric
-    if (_displayMetric == _DisplayMetric.recovered) {
-      workoutStatsEntries.sort((a, b) => b.recoveredRatio.compareTo(a.recoveredRatio));
-    } else {
-      workoutStatsEntries.sort((a, b) => b.decayingRatio.compareTo(a.decayingRatio));
-    }
-
-    final headerText = _displayMetric == _DisplayMetric.recovered ? 'Muscles ready' : 'Muscles decaying';
+    workoutStatsEntries.sort((a, b) => b.metricRatio.compareTo(a.metricRatio));
 
     return Scaffold(
       appBar: AppBar(
@@ -144,17 +162,11 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
                 SizedBox(
                   width: 160,
                   child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _displayMetric = _displayMetric == _DisplayMetric.recovered
-                            ? _DisplayMetric.decaying
-                            : _DisplayMetric.recovered;
-                      });
-                    },
+                    onTap: _toggleMetric,
                     child: MouseRegion(
                       cursor: SystemMouseCursors.click,
                       child: Text(
-                        headerText,
+                        _metricHeaderText,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
@@ -185,6 +197,7 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
                                 builder: (context) => WorkoutExecutionScreen(workout: entry.workout),
                               ),
                             );
+                            // Workout execution mutates muscle/exercise state; refresh rankings.
                             if (!mounted) return;
                             setState(() {});
                           },
@@ -198,9 +211,7 @@ class _WorkoutSelectionScreenState extends State<WorkoutSelectionScreen> {
                     SizedBox(
                       width: 160,
                       child: Text(
-                        _displayMetric == _DisplayMetric.recovered
-                            ? '${entry.stats.recoveredCount}/${entry.totalMuscles > 0 ? entry.totalMuscles : 0}'
-                            : '${entry.stats.decayingCount}/${entry.totalMuscles > 0 ? entry.totalMuscles : 0}',
+                        '${_countForMetric(entry.stats)}/${entry.totalMuscles > 0 ? entry.totalMuscles : 0}',
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontFamily: 'monospace'),
                       ),

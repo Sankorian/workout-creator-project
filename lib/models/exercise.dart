@@ -1,6 +1,8 @@
 import 'muscle.dart';
 
-/// Connects a muscle to an exercise with an involvement factor.
+/// Connects a muscle to an exercise with an involvement factor. Involvement of
+/// 1 means the muscle is completely exerted during this exercise while 0.1
+/// would mean the muscle is only slightly involved.
 class Inv {
   /// Referenced muscle.
   final Muscle muscle;
@@ -28,7 +30,8 @@ class Inv {
   }
 }
 
-/// Defines one configured training set.
+/// Defines one configured training set which consists of a certain amount of
+/// repetitions and a load in kilograms that are executed without a pause.
 class ExerciseSet {
   /// Planned repetitions for the set.
   int repetitions;
@@ -57,6 +60,7 @@ class ExerciseSet {
 }
 
 /// Represents a trainable exercise definition and its execution settings.
+/// Examples for an exercise would be bench press or pull ups.
 class Exercise {
   /// Stable identifier used for persistence.
   final String id;
@@ -64,22 +68,28 @@ class Exercise {
   /// Display name.
   String name;
 
-  /// Optional user-facing notes.
+  /// Optional text that is shown during execution mode below the name - can
+  /// be used to provide a description or instruction of the exercise.
   String description;
 
   /// Muscles involved in this exercise.
   List<Inv> involvedMuscles;
 
-  /// Best known one-repetition maximum in kilograms.
+  /// Best known one-repetition maximum in kilograms. Can be left empty or set
+  /// to zero and will then be calculated during exercising.
   double oneRepetitionMax;
 
-  /// Ordered set plan for this exercise.
+  /// Ordered set plan for this exercise. If none are added the exercise has no
+  /// sets and can be finished via the endExercise-button
   List<ExerciseSet> sets;
 
-  /// Planned pause between sets in seconds.
+  /// Planned pause between sets in seconds. Last set will also evoke one last
+  /// pause.
   int pauseDuration;
 
-  /// Planned duration in seconds for time-based execution.
+  /// Planned duration in seconds for time-based execution. Exercise cant be
+  /// finished before the timer is started and reached zero - even if all sets
+  /// have been finished.
   int exerciseDuration;
 
   Exercise({
@@ -133,14 +143,17 @@ class Exercise {
     );
   }
 
-  /// Estimates 1RM from reps and load using the Epley formula.
+  /// Estimates 1RM from reps and load using the Epley formula - a formula
+  /// commonly used in sports science.
   double calculate1RM(int reps, double weight) {
     if (reps <= 0) return 0;
     if (reps == 1) return weight;
     return weight * (1 + reps / 30.0);
   }
 
-  /// Processes a completed set, updates 1RM, and trains involved muscles.
+  /// Processes a completed set, updates 1RM, and trains involved muscles. So
+  /// every involved muscle will already be updated directly after exerting
+  ///  - not just after ending an exercise or the whole workout.
   void completeSet(int setIndex, DateTime timestamp, int repsInReserve) {
     if (setIndex < 0 || setIndex >= sets.length) return;
 
@@ -161,7 +174,8 @@ class Exercise {
     }
   }
 
-  /// Completes exercises that have no configured sets (for example a time based exercise)
+  /// Completes exercises that have no configured sets
+  /// (for example a time based exercise)
   void completeExercise(DateTime timestamp) {
     if (sets.isEmpty) {
       for (var involvement in involvedMuscles) {

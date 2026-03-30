@@ -4,6 +4,7 @@ import '../models/exercise.dart';
 import '../models/workout.dart';
 import 'item_management_screen.dart';
 
+/// Hub screen for managing muscles, exercises, and workouts.
 class WorkoutCreatorScreen extends StatefulWidget {
   final List<Muscle> muscles;
   final List<Exercise> exercises;
@@ -23,6 +24,27 @@ class WorkoutCreatorScreen extends StatefulWidget {
 }
 
 class _WorkoutCreatorScreenState extends State<WorkoutCreatorScreen> {
+  // Opens a manager screen and refreshes local button states on return.
+  Future<void> _openManager(Widget screen) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => screen),
+    );
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Widget _buildMenuButton({
+    required String label,
+    required VoidCallback? onPressed,
+  }) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
+      child: Text(label),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,64 +53,48 @@ class _WorkoutCreatorScreenState extends State<WorkoutCreatorScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ItemManagementScreen<Muscle>(
-                      title: 'My Muscles',
-                      items: widget.muscles,
-                      labelBuilder: (muscle) => muscle.name,
-                      onSave: widget.onSave,
-                    ),
-                  ),
-                ).then((_) => setState(() {}));
-              },
-              style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
-              child: const Text('My Muscles'),
+            _buildMenuButton(
+              label: 'My Muscles',
+              onPressed: () => _openManager(
+                ItemManagementScreen<Muscle>(
+                  title: 'My Muscles',
+                  items: widget.muscles,
+                  labelBuilder: (muscle) => muscle.name,
+                  onSave: widget.onSave,
+                ),
+              ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
+            _buildMenuButton(
+              label: 'My Exercises',
+              // Exercises require at least one muscle to link involvement.
               onPressed: widget.muscles.isNotEmpty
-                  ? () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ItemManagementScreen<Exercise>(
-                            title: 'My Exercises',
-                            items: widget.exercises,
-                            labelBuilder: (exercise) => exercise.name,
-                            availableMuscles: widget.muscles,
-                            onSave: widget.onSave,
-                          ),
+                  ? () => _openManager(
+                        ItemManagementScreen<Exercise>(
+                          title: 'My Exercises',
+                          items: widget.exercises,
+                          labelBuilder: (exercise) => exercise.name,
+                          availableMuscles: widget.muscles,
+                          onSave: widget.onSave,
                         ),
-                      ).then((_) => setState(() {}));
-                    }
+                      )
                   : null,
-              style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
-              child: const Text('My Exercises'),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
+            _buildMenuButton(
+              label: 'My Workouts',
+              // Workouts require at least one exercise to compose batches.
               onPressed: widget.exercises.isNotEmpty
-                  ? () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ItemManagementScreen<Workout>(
-                            title: 'My Workouts',
-                            items: widget.workouts,
-                            labelBuilder: (workout) => workout.name,
-                            availableExercises: widget.exercises,
-                            onSave: widget.onSave,
-                          ),
+                  ? () => _openManager(
+                        ItemManagementScreen<Workout>(
+                          title: 'My Workouts',
+                          items: widget.workouts,
+                          labelBuilder: (workout) => workout.name,
+                          availableExercises: widget.exercises,
+                          onSave: widget.onSave,
                         ),
-                      ).then((_) => setState(() {}));
-                    }
+                      )
                   : null,
-              style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
-              child: const Text('My Workouts'),
             ),
           ],
         ),
