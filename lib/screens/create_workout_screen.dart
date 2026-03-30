@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/workout.dart';
 import '../models/exercise.dart';
+import '../widgets/code_line_builder.dart';
 
 /// Screen for creating, editing, or viewing a [Workout].
 class CreateWorkoutScreen extends StatefulWidget {
@@ -70,72 +71,6 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
     return _isViewing ? text : InkWell(onTap: onTap, child: text);
   }
 
-  // Renders one constructor-like line in create/edit/view modes with optional comment above.
-  Widget _buildCodeLine(String label, Widget input) {
-    final prefix = _isEditing && !_isViewing ? '  ..' : '  ';
-    final suffix = _isEditing || _isViewing ? ';' : ',';
-    final hasComment = _attributesWithComments.contains(label);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Comment line that appears above the attribute
-        if (hasComment)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 2.0),
-            child: Text(
-              '  /// placeholder',
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-        // Main code line
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (_attributesWithComments.contains(label)) {
-                          _attributesWithComments.remove(label);
-                        } else {
-                          _attributesWithComments.add(label);
-                        }
-                      });
-                    },
-                    child: Text(
-                      label,
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 16,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                ),
-                Text(' = ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                input,
-                const SizedBox(width: 4),
-                Text(suffix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -151,89 +86,87 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
               children: [
                 Text(_openingLine,
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                _buildCodeLine('name', _isViewing 
-                  ? Text('"${_nameController.text}"', 
-                      style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
-                  : SizedBox(
-                    width: 200,
-                    child: TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                      style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                    ),
-                  )),
-                _buildCodeLine('batchType', _isViewing 
-                  ? Text('BatchType.${_selectedBatchType.name}', 
-                      style: const TextStyle(color: Colors.purple, fontFamily: 'monospace', fontSize: 16))
-                  : DropdownButtonHideUnderline(
-                    child: DropdownButton<BatchType>(
-                      value: _selectedBatchType,
-                      isDense: true,
-                      style: const TextStyle(color: Colors.purple, fontFamily: 'monospace', fontSize: 16),
-                      items: BatchType.values.map((m) => DropdownMenuItem(value: m, child: Text('BatchType.${m.name}'))).toList(),
-                      onChanged: (val) => setState(() => _selectedBatchType = val!),
-                    ),
-                  )),
-                _buildCodeLine('allowExerciseSelection', _isViewing 
-                  ? _buildToggleValue(_allowExerciseSelection)
-                  : _buildToggleValue(
-                      _allowExerciseSelection,
-                      onTap: () => setState(() => _allowExerciseSelection = !_allowExerciseSelection),
-                    )),
-                _buildCodeLine('randomBatchOrder', _isViewing 
-                  ? _buildToggleValue(_randomOrder)
-                  : _buildToggleValue(
-                      _randomOrder,
-                      onTap: () => setState(() => _randomOrder = !_randomOrder),
-                    )),
-
-                // batches header with optional comment
-                if (_attributesWithComments.contains('batches'))
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2.0),
-                    child: Text(
-                      '  /// placeholder',
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_isEditing ? '  ..' : '  ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                if (_attributesWithComments.contains('batches')) {
-                                  _attributesWithComments.remove('batches');
-                                } else {
-                                  _attributesWithComments.add('batches');
-                                }
-                              });
-                            },
-                            child: const Text(
-                              'batches',
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                            ),
+                CodeLineWithComment(
+                  label: 'name',
+                  hasComment: _attributesWithComments.contains('name'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('name')
+                      ? _attributesWithComments.remove('name')
+                      : _attributesWithComments.add('name')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing
+                      ? Text('"${_nameController.text}"',
+                          style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
+                      : SizedBox(
+                          width: 200,
+                          child: TextFormField(
+                            controller: _nameController,
+                            decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                            style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                           ),
                         ),
-                        Text(_isEditing ? ' = [' : ': [', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                      ],
-                    ),
-                  ),
+                ),
+                CodeLineWithComment(
+                  label: 'batchType',
+                  hasComment: _attributesWithComments.contains('batchType'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('batchType')
+                      ? _attributesWithComments.remove('batchType')
+                      : _attributesWithComments.add('batchType')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing
+                      ? Text('BatchType.${_selectedBatchType.name}',
+                          style: const TextStyle(color: Colors.purple, fontFamily: 'monospace', fontSize: 16))
+                      : DropdownButtonHideUnderline(
+                          child: DropdownButton<BatchType>(
+                            value: _selectedBatchType,
+                            isDense: true,
+                            style: const TextStyle(color: Colors.purple, fontFamily: 'monospace', fontSize: 16),
+                            items: BatchType.values
+                                .map((m) => DropdownMenuItem(value: m, child: Text('BatchType.${m.name}')))
+                                .toList(),
+                            onChanged: (val) => setState(() => _selectedBatchType = val!),
+                          ),
+                        ),
+                ),
+                CodeLineWithComment(
+                  label: 'allowExerciseSelection',
+                  hasComment: _attributesWithComments.contains('allowExerciseSelection'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('allowExerciseSelection')
+                      ? _attributesWithComments.remove('allowExerciseSelection')
+                      : _attributesWithComments.add('allowExerciseSelection')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing
+                      ? _buildToggleValue(_allowExerciseSelection)
+                      : _buildToggleValue(
+                          _allowExerciseSelection,
+                          onTap: () => setState(() => _allowExerciseSelection = !_allowExerciseSelection),
+                        ),
+                ),
+                CodeLineWithComment(
+                  label: 'randomBatchOrder',
+                  hasComment: _attributesWithComments.contains('randomBatchOrder'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('randomBatchOrder')
+                      ? _attributesWithComments.remove('randomBatchOrder')
+                      : _attributesWithComments.add('randomBatchOrder')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing
+                      ? _buildToggleValue(_randomOrder)
+                      : _buildToggleValue(
+                          _randomOrder,
+                          onTap: () => setState(() => _randomOrder = !_randomOrder),
+                        ),
+                ),
+
+                CodeSectionHeader(
+                  label: 'batches',
+                  hasComment: _attributesWithComments.contains('batches'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('batches')
+                      ? _attributesWithComments.remove('batches')
+                      : _attributesWithComments.add('batches')),
+                  isEditing: _isEditing,
                 ),
                 ..._batches.asMap().entries.map((entry) {
                   int batchIdx = entry.key;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/exercise.dart';
 import '../models/muscle.dart';
+import '../widgets/code_line_builder.dart';
 
 /// Screen for creating, editing, or viewing an [Exercise].
 class CreateExerciseScreen extends StatefulWidget {
@@ -106,72 +107,6 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
     );
   }
 
-  // Renders one constructor-like line in create/edit/view modes with optional comment above.
-  Widget _buildCodeLine(String label, Widget input) {
-    final prefix = _isEditing && !_isViewing ? '  ..' : '  ';
-    final suffix = _isEditing || _isViewing ? ';' : ',';
-    final hasComment = _attributesWithComments.contains(label);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Comment line that appears above the attribute
-        if (hasComment)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 2.0),
-            child: Text(
-              '  /// placeholder',
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-        // Main code line
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (_attributesWithComments.contains(label)) {
-                          _attributesWithComments.remove(label);
-                        } else {
-                          _attributesWithComments.add(label);
-                        }
-                      });
-                    },
-                    child: Text(
-                      label,
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 16,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                ),
-                Text(' = ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                input,
-                const SizedBox(width: 4),
-                Text(suffix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -187,88 +122,93 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
               children: [
                 Text(_openingLine,
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                _buildCodeLine('name', _isViewing 
-                  ? Text('"${_nameController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
-                  : _buildInputField(controller: _nameController, width: 200)),
-                _buildCodeLine('description', _isViewing 
-                  ? Text('"${_descriptionController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
-                  : _buildInputField(controller: _descriptionController, width: 200)),
-                _buildCodeLine('oneRepetitionMax', _isViewing 
-                  ? Text(_oneRepMaxController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : _buildInputField(
-                      controller: _oneRepMaxController,
-                      width: 100,
-                      keyboardType: TextInputType.number,
-                      onEditingComplete: _normalizeOneRepMaxText,
-                      onFieldSubmitted: (_) => _normalizeOneRepMaxText(),
-                    )),
-                _buildCodeLine('pauseDuration', _isViewing 
-                  ? Text(_pauseDurationController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : _buildInputField(
-                      controller: _pauseDurationController,
-                      width: 100,
-                      keyboardType: TextInputType.number,
-                    )),
-                _buildCodeLine('exerciseDuration', _isViewing 
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_durationController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16)),
-                      ],
-                    )
-                  : _buildInputField(
-                      controller: _durationController,
-                      width: 180,
-                      keyboardType: TextInputType.number,
-                    )),
-                
-                // involvedMuscles header with optional comment
-                if (_attributesWithComments.contains('involvedMuscles'))
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2.0),
-                    child: Text(
-                      '  /// placeholder',
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 16,
-                        color: Colors.grey,
+                CodeLineWithComment(
+                  label: 'name',
+                  hasComment: _attributesWithComments.contains('name'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('name')
+                      ? _attributesWithComments.remove('name')
+                      : _attributesWithComments.add('name')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing 
+                    ? Text('"${_nameController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
+                    : _buildInputField(controller: _nameController, width: 200),
+                ),
+                CodeLineWithComment(
+                  label: 'description',
+                  hasComment: _attributesWithComments.contains('description'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('description')
+                      ? _attributesWithComments.remove('description')
+                      : _attributesWithComments.add('description')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing 
+                    ? Text('"${_descriptionController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
+                    : _buildInputField(controller: _descriptionController, width: 200),
+                ),
+                CodeLineWithComment(
+                  label: 'oneRepetitionMax',
+                  hasComment: _attributesWithComments.contains('oneRepetitionMax'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('oneRepetitionMax')
+                      ? _attributesWithComments.remove('oneRepetitionMax')
+                      : _attributesWithComments.add('oneRepetitionMax')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing 
+                    ? Text(_oneRepMaxController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                    : _buildInputField(
+                        controller: _oneRepMaxController,
+                        width: 100,
+                        keyboardType: TextInputType.number,
+                        onEditingComplete: _normalizeOneRepMaxText,
+                        onFieldSubmitted: (_) => _normalizeOneRepMaxText(),
                       ),
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_isEditing ? '  ..' : '  ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                if (_attributesWithComments.contains('involvedMuscles')) {
-                                  _attributesWithComments.remove('involvedMuscles');
-                                } else {
-                                  _attributesWithComments.add('involvedMuscles');
-                                }
-                              });
-                            },
-                            child: const Text(
-                              'involvedMuscles',
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Text(_isEditing ? ' = [' : ': [', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                      ],
-                    ),
-                  ),
+                ),
+                CodeLineWithComment(
+                  label: 'pauseDuration',
+                  hasComment: _attributesWithComments.contains('pauseDuration'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('pauseDuration')
+                      ? _attributesWithComments.remove('pauseDuration')
+                      : _attributesWithComments.add('pauseDuration')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing 
+                    ? Text(_pauseDurationController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                    : _buildInputField(
+                        controller: _pauseDurationController,
+                        width: 100,
+                        keyboardType: TextInputType.number,
+                      ),
+                ),
+                CodeLineWithComment(
+                  label: 'exerciseDuration',
+                  hasComment: _attributesWithComments.contains('exerciseDuration'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('exerciseDuration')
+                      ? _attributesWithComments.remove('exerciseDuration')
+                      : _attributesWithComments.add('exerciseDuration')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing 
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_durationController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16)),
+                        ],
+                      )
+                    : _buildInputField(
+                        controller: _durationController,
+                        width: 180,
+                        keyboardType: TextInputType.number,
+                      ),
+                ),
+                
+                CodeSectionHeader(
+                  label: 'involvedMuscles',
+                  hasComment: _attributesWithComments.contains('involvedMuscles'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('involvedMuscles')
+                      ? _attributesWithComments.remove('involvedMuscles')
+                      : _attributesWithComments.add('involvedMuscles')),
+                  isEditing: _isEditing,
                 ),
                 ..._involvedMuscles.asMap().entries.map((entry) {
                   int idx = entry.key;
@@ -305,53 +245,13 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                   child: Text('  ],', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
                 ),
 
-                // sets header with optional comment
-                if (_attributesWithComments.contains('sets'))
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2.0),
-                    child: Text(
-                      '  /// placeholder',
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_isEditing ? '  ..' : '  ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                if (_attributesWithComments.contains('sets')) {
-                                  _attributesWithComments.remove('sets');
-                                } else {
-                                  _attributesWithComments.add('sets');
-                                }
-                              });
-                            },
-                            child: const Text(
-                              'sets',
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Text(_isEditing ? ' = [' : ': [', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                      ],
-                    ),
-                  ),
+                CodeSectionHeader(
+                  label: 'sets',
+                  hasComment: _attributesWithComments.contains('sets'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('sets')
+                      ? _attributesWithComments.remove('sets')
+                      : _attributesWithComments.add('sets')),
+                  isEditing: _isEditing,
                 ),
                 ..._sets.asMap().entries.map((entry) {
                   int idx = entry.key;

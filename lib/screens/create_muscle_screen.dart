@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../constants/attribute_explanations.dart';
 import '../models/muscle.dart';
 import '../models/muscle_rules.dart';
+import '../widgets/code_line_builder.dart';
 
 /// Screen for creating, editing, or viewing a [Muscle].
 class CreateMuscleScreen extends StatefulWidget {
@@ -88,73 +90,6 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
     super.dispose();
   }
 
-  // Renders one constructor-like line in create/edit/view modes with optional comment above.
-  Widget _buildCodeLine(String label, Widget input) {
-    final prefix = _isEditing && !_isViewing ? '  ..' : '  ';
-    final suffix = _isEditing || _isViewing ? ';' : ',';
-    final hasComment = _attributesWithComments.contains(label);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Comment line that appears above the attribute
-        if (hasComment)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 2.0),
-            child: Text(
-              '  /// placeholder',
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-        // Main code line
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (_attributesWithComments.contains(label)) {
-                          _attributesWithComments.remove(label);
-                        } else {
-                          _attributesWithComments.add(label);
-                        }
-                      });
-                    },
-                    child: Text(
-                      label,
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 16,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                ),
-                Text(' = ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                input,
-                const SizedBox(width: 4),
-                Text(suffix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -169,99 +104,96 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
               children: [
                 Text(_openingLine,
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                _buildCodeLine('name', _isViewing
-                  ? Text('"${_nameController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
-                  : SizedBox(
-                      width: 200,
-                      child: TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                      ),
-                    )),
-                _buildCodeLine('growthLevel', _isViewing
-                  ? Text(_growthLevelController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : SizedBox(
-                      width: 100,
-                      child: TextFormField(
-                        controller: _growthLevelController,
-                        keyboardType: TextInputType.number,
-                        onEditingComplete: _normalizeGrowthLevelText,
-                        onFieldSubmitted: (_) => _normalizeGrowthLevelText(),
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                      ),
-                    )),
-                _buildCodeLine('recoveryTime', _isViewing
-                  ? Text(_recoveryTimeController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : SizedBox(
-                      width: 100,
-                      child: TextFormField(
-                        controller: _recoveryTimeController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                      ),
-                    )),
-                _buildCodeLine('decayStartTime', _isViewing
-                  ? Text(_decayStartTimeController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
-                  : SizedBox(
-                      width: 100,
-                      child: TextFormField(
-                        controller: _decayStartTimeController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                        style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
-                      ),
-                    )),
-                
-                // growthRules header with optional comment
-                if (_attributesWithComments.contains('growthRules'))
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2.0),
-                    child: Text(
-                      '  /// placeholder',
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_isEditing ? '  ..' : '  ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                if (_attributesWithComments.contains('growthRules')) {
-                                  _attributesWithComments.remove('growthRules');
-                                } else {
-                                  _attributesWithComments.add('growthRules');
-                                }
-                              });
-                            },
-                            child: const Text(
-                              'growthRules',
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
+                CodeLineWithComment(
+                  label: 'name',
+                  hasComment: _attributesWithComments.contains('name'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('name')
+                      ? _attributesWithComments.remove('name')
+                      : _attributesWithComments.add('name')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing
+                    ? Text('"${_nameController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
+                    : SizedBox(
+                        width: 200,
+                        child: TextFormField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                          style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                         ),
-                        Text(_isEditing ? ' = [' : ': [', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                      ],
-                    ),
-                  ),
+                      ),
+                ),
+                CodeLineWithComment(
+                  label: 'growthLevel',
+                  hasComment: _attributesWithComments.contains('growthLevel'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('growthLevel')
+                      ? _attributesWithComments.remove('growthLevel')
+                      : _attributesWithComments.add('growthLevel')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing
+                    ? Text(_growthLevelController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                    : SizedBox(
+                        width: 100,
+                        child: TextFormField(
+                          controller: _growthLevelController,
+                          keyboardType: TextInputType.number,
+                          onEditingComplete: _normalizeGrowthLevelText,
+                          onFieldSubmitted: (_) => _normalizeGrowthLevelText(),
+                          decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                          style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                        ),
+                      ),
+                ),
+                CodeLineWithComment(
+                  label: 'recoveryTime',
+                  hasComment: _attributesWithComments.contains('recoveryTime'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('recoveryTime')
+                      ? _attributesWithComments.remove('recoveryTime')
+                      : _attributesWithComments.add('recoveryTime')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing
+                    ? Text(_recoveryTimeController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                    : SizedBox(
+                        width: 100,
+                        child: TextFormField(
+                          controller: _recoveryTimeController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                          style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                        ),
+                      ),
+                ),
+                CodeLineWithComment(
+                  label: 'decayStartTime',
+                  hasComment: _attributesWithComments.contains('decayStartTime'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('decayStartTime')
+                      ? _attributesWithComments.remove('decayStartTime')
+                      : _attributesWithComments.add('decayStartTime')),
+                  isEditing: _isEditing,
+                  isViewing: _isViewing,
+                  input: _isViewing
+                    ? Text(_decayStartTimeController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
+                    : SizedBox(
+                        width: 100,
+                        child: TextFormField(
+                          controller: _decayStartTimeController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                          style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
+                        ),
+                      ),
+                ),
+
+                // growthRules header with optional comment
+                CodeSectionHeader(
+                  label: 'growthRules',
+                  hasComment: _attributesWithComments.contains('growthRules'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('growthRules')
+                      ? _attributesWithComments.remove('growthRules')
+                      : _attributesWithComments.add('growthRules')),
+                  isEditing: _isEditing,
                 ),
                 if (_isViewing)
                   Padding(
@@ -281,9 +213,9 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                         if (_attributesWithComments.contains(ruleKey))
                           Padding(
                             padding: const EdgeInsets.only(left: 16.0, top: 4.0),
-                            child: const Text(
-                              '/// placeholder',
-                              style: TextStyle(
+                            child: Text(
+                              formatAttributeComment(ruleKey, indent: ''),
+                              style: const TextStyle(
                                 fontFamily: 'monospace',
                                 fontSize: 14,
                                 color: Colors.grey,
@@ -339,52 +271,13 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                 ),
 
                 // decayRules header with optional comment
-                if (_attributesWithComments.contains('decayRules'))
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2.0),
-                    child: Text(
-                      '  /// placeholder',
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_isEditing ? '  ..' : '  ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                if (_attributesWithComments.contains('decayRules')) {
-                                  _attributesWithComments.remove('decayRules');
-                                } else {
-                                  _attributesWithComments.add('decayRules');
-                                }
-                              });
-                            },
-                            child: const Text(
-                              'decayRules',
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Text(_isEditing ? ' = [' : ': [', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                      ],
-                    ),
-                  ),
+                CodeSectionHeader(
+                  label: 'decayRules',
+                  hasComment: _attributesWithComments.contains('decayRules'),
+                  onLabelTap: () => setState(() => _attributesWithComments.contains('decayRules')
+                      ? _attributesWithComments.remove('decayRules')
+                      : _attributesWithComments.add('decayRules')),
+                  isEditing: _isEditing,
                 ),
                 if (_isViewing)
                   Padding(
@@ -404,9 +297,9 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                         if (_attributesWithComments.contains(ruleKey))
                           Padding(
                             padding: const EdgeInsets.only(left: 16.0, top: 4.0),
-                            child: const Text(
-                              '/// placeholder',
-                              style: TextStyle(
+                            child: Text(
+                              formatAttributeComment(ruleKey, indent: ''),
+                              style: const TextStyle(
                                 fontFamily: 'monospace',
                                 fontSize: 14,
                                 color: Colors.grey,
