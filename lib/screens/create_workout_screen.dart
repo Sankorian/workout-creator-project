@@ -187,10 +187,53 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                       onTap: () => setState(() => _randomOrder = !_randomOrder),
                     )),
 
+                // batches header with optional comment
+                if (_attributesWithComments.contains('batches'))
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2.0),
+                    child: Text(
+                      '  /// placeholder',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: Text(_isEditing ? '  ..batches = [' : '  batches: [', 
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_isEditing ? '  ..' : '  ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                if (_attributesWithComments.contains('batches')) {
+                                  _attributesWithComments.remove('batches');
+                                } else {
+                                  _attributesWithComments.add('batches');
+                                }
+                              });
+                            },
+                            child: const Text(
+                              'batches',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Text(_isEditing ? ' = [' : ': [', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                      ],
+                    ),
+                  ),
                 ),
                 ..._batches.asMap().entries.map((entry) {
                   int batchIdx = entry.key;

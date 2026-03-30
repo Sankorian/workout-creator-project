@@ -215,10 +215,53 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                       ),
                     )),
                 
+                // growthRules header with optional comment
+                if (_attributesWithComments.contains('growthRules'))
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2.0),
+                    child: Text(
+                      '  /// placeholder',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: Text(_isEditing ? '  ..growthRules = [' : '  growthRules: [',
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_isEditing ? '  ..' : '  ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                if (_attributesWithComments.contains('growthRules')) {
+                                  _attributesWithComments.remove('growthRules');
+                                } else {
+                                  _attributesWithComments.add('growthRules');
+                                }
+                              });
+                            },
+                            child: const Text(
+                              'growthRules',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Text(_isEditing ? ' = [' : ': [', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                      ],
+                    ),
+                  ),
                 ),
                 if (_isViewing)
                   Padding(
@@ -230,30 +273,118 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                     ),
                   )
                 else
-                  ..._availableGrowthRules.map((rule) => CheckboxListTile(
-                    title: Text(rule.name, style: const TextStyle(fontFamily: 'monospace')),
-                    value: _selectedGrowthRules.any((r) => r.name == rule.name),
-                    onChanged: (val) {
-                      setState(() {
-                        if (val!) {
-                          _selectedGrowthRules.add(rule);
-                        } else {
-                          _selectedGrowthRules.removeWhere((r) => r.name == rule.name);
-                        }
-                      });
-                    },
-                    controlAffinity: ListTileControlAffinity.leading,
-                    dense: true,
-                  )),
+                  ..._availableGrowthRules.map((rule) {
+                    final ruleKey = 'growthRule_${rule.name}';
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_attributesWithComments.contains(ruleKey))
+                          Padding(
+                            padding: const EdgeInsets.only(left: 16.0, top: 4.0),
+                            child: const Text(
+                              '/// placeholder',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                          child: Row(
+                            children: [
+                              MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      if (_attributesWithComments.contains(ruleKey)) {
+                                        _attributesWithComments.remove(ruleKey);
+                                      } else {
+                                        _attributesWithComments.add(ruleKey);
+                                      }
+                                    });
+                                  },
+                                  child: Text(
+                                    rule.name,
+                                    style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Checkbox(
+                                value: _selectedGrowthRules.any((r) => r.name == rule.name),
+                                onChanged: (val) {
+                                  setState(() {
+                                    if (val!) {
+                                      _selectedGrowthRules.add(rule);
+                                    } else {
+                                      _selectedGrowthRules.removeWhere((r) => r.name == rule.name);
+                                    }
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
                 const Padding(
                   padding: EdgeInsets.only(left: 8.0),
                   child: Text('  ],', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
                 ),
 
+                // decayRules header with optional comment
+                if (_attributesWithComments.contains('decayRules'))
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2.0),
+                    child: Text(
+                      '  /// placeholder',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: Text(_isEditing ? '  ..decayRules = [' : '  decayRules: [',
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_isEditing ? '  ..' : '  ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                if (_attributesWithComments.contains('decayRules')) {
+                                  _attributesWithComments.remove('decayRules');
+                                } else {
+                                  _attributesWithComments.add('decayRules');
+                                }
+                              });
+                            },
+                            child: const Text(
+                              'decayRules',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Text(_isEditing ? ' = [' : ': [', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                      ],
+                    ),
+                  ),
                 ),
                 if (_isViewing)
                   Padding(
@@ -265,21 +396,66 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                     ),
                   )
                 else
-                  ..._availableDecayRules.map((rule) => CheckboxListTile(
-                    title: Text(rule.name, style: const TextStyle(fontFamily: 'monospace')),
-                    value: _selectedDecayRules.any((r) => r.name == rule.name),
-                    onChanged: (val) {
-                      setState(() {
-                        if (val!) {
-                          _selectedDecayRules.add(rule);
-                        } else {
-                          _selectedDecayRules.removeWhere((r) => r.name == rule.name);
-                        }
-                      });
-                    },
-                    controlAffinity: ListTileControlAffinity.leading,
-                    dense: true,
-                  )),
+                  ..._availableDecayRules.map((rule) {
+                    final ruleKey = 'decayRule_${rule.name}';
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_attributesWithComments.contains(ruleKey))
+                          Padding(
+                            padding: const EdgeInsets.only(left: 16.0, top: 4.0),
+                            child: const Text(
+                              '/// placeholder',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                          child: Row(
+                            children: [
+                              MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      if (_attributesWithComments.contains(ruleKey)) {
+                                        _attributesWithComments.remove(ruleKey);
+                                      } else {
+                                        _attributesWithComments.add(ruleKey);
+                                      }
+                                    });
+                                  },
+                                  child: Text(
+                                    rule.name,
+                                    style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Checkbox(
+                                value: _selectedDecayRules.any((r) => r.name == rule.name),
+                                onChanged: (val) {
+                                  setState(() {
+                                    if (val!) {
+                                      _selectedDecayRules.add(rule);
+                                    } else {
+                                      _selectedDecayRules.removeWhere((r) => r.name == rule.name);
+                                    }
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
                 const Padding(
                   padding: EdgeInsets.only(left: 8.0),
                   child: Text('  ],', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),

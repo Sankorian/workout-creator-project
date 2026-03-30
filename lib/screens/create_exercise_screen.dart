@@ -222,10 +222,53 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                       keyboardType: TextInputType.number,
                     )),
                 
+                // involvedMuscles header with optional comment
+                if (_attributesWithComments.contains('involvedMuscles'))
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2.0),
+                    child: Text(
+                      '  /// placeholder',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: Text(_isEditing ? '  ..involvedMuscles = [' : '  involvedMuscles: [', 
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_isEditing ? '  ..' : '  ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                if (_attributesWithComments.contains('involvedMuscles')) {
+                                  _attributesWithComments.remove('involvedMuscles');
+                                } else {
+                                  _attributesWithComments.add('involvedMuscles');
+                                }
+                              });
+                            },
+                            child: const Text(
+                              'involvedMuscles',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Text(_isEditing ? ' = [' : ': [', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                      ],
+                    ),
+                  ),
                 ),
                 ..._involvedMuscles.asMap().entries.map((entry) {
                   int idx = entry.key;
@@ -262,10 +305,53 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                   child: Text('  ],', style: TextStyle(fontFamily: 'monospace', fontSize: 16)),
                 ),
 
+                // sets header with optional comment
+                if (_attributesWithComments.contains('sets'))
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2.0),
+                    child: Text(
+                      '  /// placeholder',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: Text(_isEditing ? '  ..sets = [' : '  sets: [', 
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_isEditing ? '  ..' : '  ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                if (_attributesWithComments.contains('sets')) {
+                                  _attributesWithComments.remove('sets');
+                                } else {
+                                  _attributesWithComments.add('sets');
+                                }
+                              });
+                            },
+                            child: const Text(
+                              'sets',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Text(_isEditing ? ' = [' : ': [', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                      ],
+                    ),
+                  ),
                 ),
                 ..._sets.asMap().entries.map((entry) {
                   int idx = entry.key;
