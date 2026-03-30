@@ -89,7 +89,7 @@ class TimingGrowthRule extends GrowthRule {
 class PassiveDecayRule extends DecayRule {
   final double decayRatePerDay;
   const PassiveDecayRule({this.decayRatePerDay = 0.1}) : super('Passive Decay');
-  
+
   @override
   double calculateDecay(Muscle muscle, DateTime currentTime) {
     // Continue decay from the last decay checkpoint or last training time.
@@ -106,7 +106,7 @@ class PassiveDecayRule extends DecayRule {
 class InactivityDecayRule extends DecayRule {
   final double decayRatePerDay;
   const InactivityDecayRule({this.decayRatePerDay = 0.5}) : super('Inactivity Decay');
-  
+
   @override
   double calculateDecay(Muscle muscle, DateTime currentTime) {
     // No inactivity decay before first training stimulus.

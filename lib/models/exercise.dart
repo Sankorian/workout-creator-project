@@ -65,7 +65,7 @@ class Exercise {
   /// Stable identifier used for persistence.
   final String id;
 
-  /// Display name.
+  /// Display name (for example "Plank")
   String name;
 
   /// Optional text that is shown during execution mode below the name - can
@@ -89,7 +89,8 @@ class Exercise {
 
   /// Planned duration in seconds for time-based execution. Exercise cant be
   /// finished before the timer is started and reached zero - even if all sets
-  /// have been finished.
+  /// have been finished. Set to zero allows the user to finish the exercise
+  /// as soon as all sets are done.
   int exerciseDuration;
 
   Exercise({

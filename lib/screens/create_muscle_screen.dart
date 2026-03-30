@@ -34,6 +34,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
 
   final Set<GrowthRule> _selectedGrowthRules = {};
   final Set<DecayRule> _selectedDecayRules = {};
+  final Set<String> _attributesWithComments = {};
 
   // Mode flags drive the code-like presentation and edit behavior.
   bool get _isEditing => widget.muscleToEdit != null && !widget.isViewOnly;
@@ -87,26 +88,70 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
     super.dispose();
   }
 
-  // Renders one constructor-like line in create/edit/view modes.
+  // Renders one constructor-like line in create/edit/view modes with optional comment above.
   Widget _buildCodeLine(String label, Widget input) {
-    final prefix = _isEditing && !_isViewing ? '  ..$label = ' : '  $label: ';
+    final prefix = _isEditing && !_isViewing ? '  ..' : '  ';
     final suffix = _isEditing || _isViewing ? ';' : ',';
+    final hasComment = _attributesWithComments.contains(label);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-            input,
-            const SizedBox(width: 4),
-            Text(suffix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Comment line that appears above the attribute
+        if (hasComment)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 2.0),
+            child: Text(
+              '  /// placeholder',
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+        // Main code line
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (_attributesWithComments.contains(label)) {
+                          _attributesWithComments.remove(label);
+                        } else {
+                          _attributesWithComments.add(label);
+                        }
+                      });
+                    },
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 16,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+                Text(' = ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                input,
+                const SizedBox(width: 4),
+                Text(suffix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+              ],
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -124,7 +169,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
               children: [
                 Text(_openingLine,
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-                _buildCodeLine('name', _isViewing 
+                _buildCodeLine('name', _isViewing
                   ? Text('"${_nameController.text}"', style: const TextStyle(color: Colors.brown, fontFamily: 'monospace', fontSize: 16))
                   : SizedBox(
                       width: 200,
@@ -134,7 +179,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),
                     )),
-                _buildCodeLine('growthLevel', _isViewing 
+                _buildCodeLine('growthLevel', _isViewing
                   ? Text(_growthLevelController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
                   : SizedBox(
                       width: 100,
@@ -147,7 +192,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),
                     )),
-                _buildCodeLine('recoveryTime', _isViewing 
+                _buildCodeLine('recoveryTime', _isViewing
                   ? Text(_recoveryTimeController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
                   : SizedBox(
                       width: 100,
@@ -158,7 +203,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                         style: const TextStyle(color: Colors.blue, fontFamily: 'monospace'),
                       ),
                     )),
-                _buildCodeLine('decayStartTime', _isViewing 
+                _buildCodeLine('decayStartTime', _isViewing
                   ? Text(_decayStartTimeController.text, style: const TextStyle(color: Colors.blue, fontFamily: 'monospace', fontSize: 16))
                   : SizedBox(
                       width: 100,
@@ -172,7 +217,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
                 
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: Text(_isEditing ? '  ..growthRules = [' : '  growthRules: [', 
+                  child: Text(_isEditing ? '  ..growthRules = [' : '  growthRules: [',
                       style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
                 ),
                 if (_isViewing)
@@ -207,7 +252,7 @@ class _CreateMuscleScreenState extends State<CreateMuscleScreen> {
 
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: Text(_isEditing ? '  ..decayRules = [' : '  decayRules: [', 
+                  child: Text(_isEditing ? '  ..decayRules = [' : '  decayRules: [',
                       style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
                 ),
                 if (_isViewing)

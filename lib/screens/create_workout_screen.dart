@@ -27,6 +27,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   late bool _allowExerciseSelection;
   late bool _randomOrder;
   final List<List<Exercise>> _batches = [];
+  final Set<String> _attributesWithComments = {};
 
   // Mode flags drive the code-like constructor presentation.
   bool get _isEditing => widget.workoutToEdit != null && !widget.isViewOnly;
@@ -69,26 +70,70 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
     return _isViewing ? text : InkWell(onTap: onTap, child: text);
   }
 
-  // Renders one constructor-like line in create/edit/view modes.
+  // Renders one constructor-like line in create/edit/view modes with optional comment above.
   Widget _buildCodeLine(String label, Widget input) {
-    final prefix = _isEditing && !_isViewing ? '  ..$label = ' : '  $label: ';
+    final prefix = _isEditing && !_isViewing ? '  ..' : '  ';
     final suffix = _isEditing || _isViewing ? ';' : ',';
+    final hasComment = _attributesWithComments.contains(label);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-            input,
-            const SizedBox(width: 4),
-            Text(suffix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Comment line that appears above the attribute
+        if (hasComment)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 2.0),
+            child: Text(
+              '  /// placeholder',
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+        // Main code line
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (_attributesWithComments.contains(label)) {
+                          _attributesWithComments.remove(label);
+                        } else {
+                          _attributesWithComments.add(label);
+                        }
+                      });
+                    },
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 16,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+                Text(' = ', style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                input,
+                const SizedBox(width: 4),
+                Text(suffix, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+              ],
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
