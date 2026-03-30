@@ -3,7 +3,7 @@ const Map<String, String> kAttributeExplanations = {
   'name': 'Display name shown in the UI and lists.',
 
   // Muscle
-  'growthLevel': 'Current modeled growth value on a 0..100 progress scale.',
+  'growthLevel': 'Current modeled growth value on a 0..100 asymptotic scale: growth uses growthLevel += totalGrowth * (1 - growthLevel / 100), so gains shrink as the value rises and 100 remains a theoretical limit that cannot be reached.',
   'recoveryTime': 'Recovery duration in days after a training event.',
   'decayStartTime': 'Days after training when inactivity decay can begin.',
   'growthRules': 'Rules that add growth during training based on your model.',
