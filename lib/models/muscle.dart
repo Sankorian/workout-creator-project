@@ -116,28 +116,4 @@ class Muscle {
     growthLevel -= totalDecay * (growthLevel / 100);
     lastDecayed = currentTime;
   }
-
-  /// Convenience list used when creating starter muscles in a fresh app state.
-  static List<Muscle> getDefaultMuscles() {
-    final defaultGrowthRules = <GrowthRule>{
-      const IntensityGrowthRule(),
-      const TimingGrowthRule(),
-    };
-    final defaultDecayRules = <DecayRule>{
-      const InactivityDecayRule(),
-    };
-    return [
-      Muscle(name: 'Biceps', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
-      Muscle(name: 'Triceps', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
-      Muscle(name: 'Chest', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
-      Muscle(name: 'Shoulders', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
-      Muscle(name: 'Upper Back', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
-      Muscle(name: 'Lower Back', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
-      Muscle(name: 'Quadriceps', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
-      Muscle(name: 'Glutes', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
-      Muscle(name: 'Hamstrings', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
-      Muscle(name: 'Calves', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
-      Muscle(name: 'Abs', growthRules: defaultGrowthRules, decayRules: defaultDecayRules),
-    ];
-  }
 }

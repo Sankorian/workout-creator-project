@@ -1,16 +1,20 @@
 # workout_creator
 
-A new Flutter project.
+`workout_creator` is a Flutter app for creating and running workouts with exercises, muscles and workouts that have to be added by the user before working out.
 
-## Getting Started
+## Version Notes
 
-This project is a starting point for a Flutter application.
+- **Dart SDK (project constraint):** `^3.9.2` (from `pubspec.yaml`)
+- **Tested locally with:** Flutter `3.35.5`, Dart `3.9.2`
+- **Android Gradle Plugin:** `8.9.1` (from `android/settings.gradle.kts`)
+- **Gradle wrapper:** `8.12` (from `android/gradle/wrapper/gradle-wrapper.properties`)
+- **Java:** Use Android Studio bundled JDK (17+ recommended; JDK 21 is fine)
 
-A few resources to get you started if this is your first Flutter project:
+## Run In Android Studio
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+1. Open this folder in Android Studio.
+2. Wait for Gradle/Flutter sync to finish.
+3. Select your running emulator in the device dropdown.
+4. Click **Run**.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Further documentation in German is available in the Workout Creator Dokumentation PDF.
