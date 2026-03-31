@@ -69,8 +69,8 @@ class TimingGrowthRule extends GrowthRule {
     final recoveryEnd = muscle.tRecoveryEnd!;
     final decayStart = muscle.tDecayStart!;
     
-    // Reduced gain while still recovering.
-    if (now.isBefore(recoveryEnd)) return 0.2;
+    // No gain while still recovering.
+    if (now.isBefore(recoveryEnd)) return 0.0;
     
     // Reduced gain after inactivity window starts.
     if (now.isAfter(decayStart)) return 0.1;
