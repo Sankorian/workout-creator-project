@@ -144,10 +144,9 @@ void main() {
       await tester.tap(find.text('false'));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(ElevatedButton, 'nextExercise();'), findsOneWidget);
-      expect(find.widgetWithText(ElevatedButton, 'endExercise();'), findsNothing);
+      expect(find.widgetWithText(ElevatedButton, 'endExercise();'), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(ElevatedButton, 'nextExercise();'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'endExercise();'));
       await tester.pumpAndSettle();
 
       expect(find.text('Ex1'), findsWidgets);

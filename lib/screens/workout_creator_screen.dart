@@ -67,18 +67,15 @@ class _WorkoutCreatorScreenState extends State<WorkoutCreatorScreen> {
             const SizedBox(height: 20),
             _buildMenuButton(
               label: 'My Exercises',
-              // Exercises require at least one muscle to link involvement.
-              onPressed: widget.muscles.isNotEmpty
-                  ? () => _openManager(
-                        ItemManagementScreen<Exercise>(
-                          title: 'My Exercises',
-                          items: widget.exercises,
-                          labelBuilder: (exercise) => exercise.name,
-                          availableMuscles: widget.muscles,
-                          onSave: widget.onSave,
-                        ),
-                      )
-                  : null,
+              onPressed: () => _openManager(
+                ItemManagementScreen<Exercise>(
+                  title: 'My Exercises',
+                  items: widget.exercises,
+                  labelBuilder: (exercise) => exercise.name,
+                  availableMuscles: widget.muscles,
+                  onSave: widget.onSave,
+                ),
+              ),
             ),
             const SizedBox(height: 20),
             _buildMenuButton(

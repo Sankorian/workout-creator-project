@@ -920,7 +920,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Workout.complete();',
+                          'Workout complete',
                           style: TextStyle(fontFamily: 'monospace', fontSize: 20, color: Colors.green),
                         ),
                         if (didMakeProgress) ...[
@@ -957,14 +957,12 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
     final exercise = _currentExercise;
     final needsChoiceSelection = _requiresChoiceSelectionAt(_currentExerciseIndex);
-    final nextUnfinishedExerciseIndex = _findNextUnfinishedExerciseIndex(fromIndex: _currentExerciseIndex);
     final canProceedToNextExercise = _canProceedToNextExercise(exercise) ||
         (_isPauseDurationTimerRunning &&
             _areAllSetsDone(exercise) &&
             ((exercise?.exerciseDuration ?? 0) <= 0));
-    // Action label adapts based on whether any unfinished exercise remains.
-    final exerciseActionLabel =
-        nextUnfinishedExerciseIndex == null ? 'endExercise();' : 'nextExercise();';
+    // Keep action copy consistent; handler still decides whether to advance or finish.
+    const exerciseActionLabel = 'endExercise();';
     final hasSets = exercise != null && _hasSets(exercise);
     final showStartExerciseButton = exercise != null && _shouldShowStartExerciseButton(exercise);
 
