@@ -15,46 +15,63 @@ class WorkoutExecutionScreen extends StatefulWidget {
 }
 
 class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
-  // Flattened execution lane; entries can be null when choice batches await selection.
+  // Flattened execution lane. Index == UI card index.
+  // In choice mode, unresolved multi-exercise batches are represented as null entries.
   late List<Exercise?> _flatExercises;
+  // Maps execution index -> original workout batch index.
   final List<int> _batchIndexByExercise = [];
+  // Tracks which batches already resolved to a concrete exercise for single-slot modes.
   final Set<int> _resolvedBatchIndices = {};
+  // Remembers choice cards the user already left, so back no longer resets that choice.
   final Set<int> _navigatedAwayAfterChoice = {};
+  // Active card index in _flatExercises.
   int _currentExerciseIndex = 0;
+  // Active set pointer for the currently visible exercise.
   int _currentSetIndex = 0;
   
+  // Pause timer between sets.
   Timer? _pauseDurationTimer;
+  // Countdown timer for time-based exercises.
   Timer? _exerciseDurationCountdownTimer;
+  // Live pause countdown value shown in UI.
   int _remainingPauseDurationSeconds = 0;
+  // Live exercise countdown value shown in UI.
   int _remainingExerciseDurationSeconds = 0;
+  // Whether pause timer is currently ticking.
   bool _isPauseDurationTimerRunning = false;
+  // Whether exercise countdown is currently ticking.
   bool _isExerciseDurationCountdownRunning = false;
+  // Toggles finish screen.
   bool _isFinished = false;
+  // Dialog reentrancy guard for repeated back presses.
   bool _isBackDialogOpen = false;
 
+  // Per-exercise persisted runtime state (used when navigating away and back).
   final Map<int, int> _setIndexByExercise = {};
   final Map<int, int> _remainingExerciseDurationByExercise = {};
+  // Exercises that were explicitly started (relevant for timed execution).
   final Set<int> _startedExerciseIndices = {};
 
+  // Controllers for editable table cells of current exercise.
   final Map<int, TextEditingController> _weightControllers = {};
   final Map<int, TextEditingController> _repsControllers = {};
 
   @override
   void initState() {
     super.initState();
-    // Build the execution lane from workout batches and mode settings.
+    // 1) Build execution order and placeholders depending on workout mode.
     _initializeExecutionExercises();
 
-    // Prepare per-exercise runtime state (set index, remaining duration, started flags).
+    // 2) Seed runtime state for every execution slot.
     for (int i = 0; i < _flatExercises.length; i++) {
       _initializeExerciseStateForIndex(i);
     }
 
-    // Restore state for the initially selected exercise and bind editable set controllers.
+    // 3) Sync state + controllers for initially visible card.
     _restoreCurrentExerciseState();
     _initControllers();
 
-    // Auto-start only after first frame so widget state is fully initialized.
+    // 4) Run auto-start after first frame to avoid init-time setState/timer edge cases.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _autoStartCurrentExerciseIfEligible();
@@ -62,8 +79,9 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   bool get _usesSingleExercisePerBatch {
+    // Choice always shows one slot per batch, resolved by user selection.
     if (widget.workout.batchType == BatchType.choice) return true;
-    // randomPick/alternating keep one active exercise slot per batch.
+    // randomPick/alternating also keep one active slot per batch.
     return widget.workout.batchType == BatchType.randomPick ||
         widget.workout.batchType == BatchType.alternating;
   }
@@ -71,11 +89,13 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   bool get _isChoiceBatchMode => widget.workout.batchType == BatchType.choice;
 
   List<Exercise> _batchForExecutionIndex(int executionIndex) {
+    // Resolve back from execution lane index to source batch.
     final batchIndex = _batchIndexByExercise[executionIndex];
     return widget.workout.batches[batchIndex];
   }
 
   Exercise? _exerciseAt(int executionIndex) {
+    // Safe index access helper.
     if (executionIndex < 0 || executionIndex >= _flatExercises.length) return null;
     return _flatExercises[executionIndex];
   }
@@ -83,9 +103,11 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   Exercise? get _currentExercise => _exerciseAt(_currentExerciseIndex);
 
   bool _requiresChoiceSelectionAt(int executionIndex) {
+    // Only choice mode can have unresolved placeholders.
     if (!_isChoiceBatchMode) return false;
     if (executionIndex < 0 || executionIndex >= _flatExercises.length) return false;
     final batch = _batchForExecutionIndex(executionIndex);
+    // A batch with multiple options requires a selection while current slot is null.
     return batch.length > 1 && _flatExercises[executionIndex] == null;
   }
 
@@ -104,15 +126,18 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   void _initializeExecutionExercises() {
+    // Rebuild lane from workout model from scratch.
     _batchIndexByExercise.clear();
     _resolvedBatchIndices.clear();
 
     // Single-exercise modes resolve one slot per batch (choice may stay unresolved initially).
     if (_usesSingleExercisePerBatch) {
+      // Build batch order and drop empty batches from execution.
       final batchOrder = List<int>.generate(widget.workout.batches.length, (i) => i)
           .where((batchIndex) => widget.workout.batches[batchIndex].isNotEmpty)
           .toList();
 
+      // Optional batch order randomization happens before slot creation.
       if (widget.workout.randomBatchOrder) {
         batchOrder.shuffle();
       }
@@ -122,11 +147,13 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         // Multi-exercise choice batches start unresolved until user chooses.
         _flatExercises = [
           for (final batchIndex in batchOrder)
+            // Single-option choice batch can be auto-resolved immediately.
             widget.workout.batches[batchIndex].length == 1
                 ? widget.workout.batches[batchIndex].first
                 : null,
         ];
 
+        // Pre-mark batches that were already resolved above.
         for (int i = 0; i < _flatExercises.length; i++) {
           if (_flatExercises[i] != null) {
             _resolvedBatchIndices.add(_batchIndexByExercise[i]);
@@ -138,6 +165,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
           for (final batchIndex in batchOrder) widget.workout.batches[batchIndex].first,
         ];
 
+        // Resolve first slot up-front so mode-specific selection logic is applied immediately.
         if (_flatExercises.isNotEmpty) {
           _resolveExerciseForExecutionIndex(0);
         }
@@ -154,6 +182,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     }
 
     if (widget.workout.randomBatchOrder) {
+      // In multi-exercise mode this shuffles all flattened entries, not just batch groups.
       entries.shuffle();
     }
 
@@ -162,6 +191,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   void _resolveExerciseForExecutionIndex(int exerciseIndex) {
+    // Only relevant in single-slot non-choice modes.
     if (!_usesSingleExercisePerBatch) return;
     if (exerciseIndex < 0 || exerciseIndex >= _flatExercises.length) return;
     if (_isChoiceBatchMode) return;
@@ -172,6 +202,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     final batch = widget.workout.batches[batchIndex];
     if (batch.isEmpty) return;
 
+    // Pick exercise according to mode semantics.
     final selectedExercise = switch (widget.workout.batchType) {
       BatchType.randomPick => batch[Random().nextInt(batch.length)],
       BatchType.alternating => batch.first,
@@ -192,6 +223,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   void _initControllers() {
+    // Recreate controllers whenever visible exercise changes.
     _disposeControllers();
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
 
@@ -205,6 +237,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   void _disposeControllers() {
+    // Prevent leaks by disposing stale text controllers before rebuilding.
     _weightControllers.forEach((_, c) => c.dispose());
     _repsControllers.forEach((_, c) => c.dispose());
     _weightControllers.clear();
@@ -213,6 +246,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   @override
   void dispose() {
+    // Clean up timers/controllers owned by this screen.
     _pauseDurationTimer?.cancel();
     _exerciseDurationCountdownTimer?.cancel();
     _disposeControllers();
@@ -228,6 +262,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void _restoreCurrentExerciseState() {
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
 
+    // Read previously persisted set pointer for this execution slot.
     _currentSetIndex = _setIndexByExercise[_currentExerciseIndex] ?? 0;
     final exercise = _currentExercise;
     // Fall back to exercise defaults when nothing was persisted yet.
@@ -237,22 +272,26 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   bool _isCurrentExerciseStarted() {
+    // "Started" means user explicitly started the timed exercise (or exercise is non-timed).
     return _startedExerciseIndices.contains(_currentExerciseIndex);
   }
 
   bool _shouldShowStartExerciseButton(Exercise exercise) {
+    // Start button is only for timed exercises that still have remaining duration.
     return exercise.exerciseDuration > 0 &&
         !_isCurrentExerciseStarted() &&
         _remainingExerciseDurationSeconds > 0;
   }
 
   void _autoStartCurrentExerciseIfEligible() {
+    // Never auto-start if user can freely navigate/select exercises.
     if (widget.workout.allowExerciseSelection) return;
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
 
     final exercise = _currentExercise;
     if (exercise == null) return;
     if (!_shouldShowStartExerciseButton(exercise)) return;
+    // Also block auto-start while resting between sets.
     if (_isPauseDurationTimerRunning) return;
 
     _startCurrentExercise();
@@ -269,10 +308,12 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     final durationDone = (exercise.exerciseDuration <= 0) ||
         ((_remainingExerciseDurationByExercise[exerciseIndex] ?? exercise.exerciseDuration) <= 0);
 
+    // Completion is the conjunction of set progression and timer progression.
     return allSetsDone && durationDone;
   }
 
   bool _canSwipeExercises() {
+    // Swiping is intentionally blocked while timed countdown is active.
     return widget.workout.allowExerciseSelection && !_isExerciseDurationCountdownRunning;
   }
 
@@ -283,6 +324,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     bool autoStartOnArrival = false,
   }) {
     if (index < 0 || index >= _flatExercises.length || index == _currentExerciseIndex) return;
+    // For gesture navigation, enforce explicit swipe permission checks.
     if (enforceSwipePermission && !_canSwipeExercises()) return;
 
     // Track that we left a selected choice exercise (used by back-reset behavior).
@@ -290,6 +332,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       _navigatedAwayAfterChoice.add(_currentExerciseIndex);
     }
 
+    // Persist old slot first, then resolve/restore new slot.
     _persistCurrentExerciseState();
     _resolveExerciseForExecutionIndex(index);
     setState(() {
@@ -298,6 +341,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       _initControllers();
     });
 
+    // Auto-start is used by programmatic transitions (e.g. after completion), not manual swipe.
     if (autoStartOnArrival) {
       _autoStartCurrentExerciseIfEligible();
     }
@@ -324,12 +368,14 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       _startedExerciseIndices.add(_currentExerciseIndex);
     });
 
+    // Non-timed exercises have no countdown; timed ones start ticking now.
     if (exercise.exerciseDuration > 0 && _remainingExerciseDurationSeconds > 0) {
       _startExerciseDurationCountdown();
     }
   }
 
   void _startExerciseDurationCountdown() {
+    // Restart countdown cleanly for current exercise.
     _exerciseDurationCountdownTimer?.cancel();
     _isExerciseDurationCountdownRunning = false;
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) {
@@ -337,6 +383,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       return;
     }
 
+    // Nothing to tick if already finished or exercise unresolved.
     if (_remainingExerciseDurationSeconds <= 0) return;
     if (_currentExercise == null) return;
 
@@ -350,6 +397,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
     _exerciseDurationCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
+        // Stop timer on disposal to avoid orphan callbacks.
         timer.cancel();
         _isExerciseDurationCountdownRunning = false;
         return;
@@ -370,6 +418,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   String _formatDuration(int totalSeconds) {
+    // Render mm:ss for exercise timer text.
     final minutes = totalSeconds ~/ 60;
     final seconds = totalSeconds % 60;
     final mm = minutes.toString().padLeft(2, '0');
@@ -378,28 +427,34 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   bool _areAllSetsDone(Exercise? exercise) {
+    // Set progression is complete when pointer moved past last configured set.
     if (exercise == null) return false;
     return _currentSetIndex >= exercise.sets.length;
   }
 
   bool _isExerciseDurationDone(Exercise? exercise) {
+    // Untimed exercises are duration-complete by definition.
     if (exercise == null) return false;
     if (exercise.exerciseDuration <= 0) return true;
     return _remainingExerciseDurationSeconds <= 0;
   }
 
   bool _canProceedToNextExercise(Exercise? exercise) {
+    // Proceed only after both dimensions are complete: sets + duration.
     return _areAllSetsDone(exercise) && _isExerciseDurationDone(exercise);
   }
 
   bool _hasMeaningfulProgress() {
+    // Used on finish screen to decide whether to show encouragement text.
     for (int i = 0; i < _flatExercises.length; i++) {
       final exercise = _exerciseAt(i);
       if (exercise == null) continue;
 
+      // Any completed set counts as progress.
       if ((_setIndexByExercise[i] ?? 0) > 0) return true;
 
       if (exercise.exerciseDuration > 0) {
+        // Timed exercises count as progress once timer moved from its initial value.
         final remaining = _remainingExerciseDurationByExercise[i] ?? exercise.exerciseDuration;
         if (remaining < exercise.exerciseDuration) return true;
       }
@@ -408,6 +463,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   int? _findNextUnfinishedExerciseIndex({required int fromIndex}) {
+    // No next item exists in empty/single-item lanes.
     if (_flatExercises.isEmpty) return null;
     if (_flatExercises.length == 1) return null;
 
@@ -423,10 +479,12 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   void _moveToExercise(int nextIndex) {
+    // Completion flow transitions should auto-start if workout rules allow it.
     _switchToExercise(nextIndex, autoStartOnArrival: true);
   }
 
   void _endExercise() {
+    // Freeze all time-based side effects before showing completion UI.
     _pauseDurationTimer?.cancel();
     _exerciseDurationCountdownTimer?.cancel();
     setState(() {
@@ -435,6 +493,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   Future<void> _handleBackPressedDuringWorkout() async {
+    // In choice mode, first try soft-undo of a fresh selection.
     if (_tryResetChoiceSelectionOnBack()) return;
     // Prevent stacked dialogs when back is tapped repeatedly.
     if (_isBackDialogOpen) return;
@@ -469,19 +528,23 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       // Finalize exercise-level effects (important for set-less/timed exercises).
       exercise.completeExercise(DateTime.now());
     }
-    
+
+    // Completion flows in circular order to support "finish later" selection patterns.
     final nextUnfinishedIndex = _findNextUnfinishedExerciseIndex(fromIndex: _currentExerciseIndex);
     if (nextUnfinishedIndex == null) {
       // No unfinished exercises remain.
       _endExercise();
       return;
     }
+    // Jump to next unfinished card instead of forcing linear order.
     _moveToExercise(nextUnfinishedIndex);
   }
 
   void _startPauseDurationTimer(int seconds) {
+    // Pause timer is single-instance; replace any previous one.
     _pauseDurationTimer?.cancel();
     if (seconds <= 0) {
+      // Zero/negative pause means immediate continuation.
       setState(() {
         _remainingPauseDurationSeconds = 0;
         _isPauseDurationTimerRunning = false;
@@ -514,6 +577,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   void _completeSet() {
+    // Guard all invalid states (no exercise, not started, or out-of-range pointer).
     if (_flatExercises.isEmpty || _currentExerciseIndex >= _flatExercises.length) return;
     if (!_isCurrentExerciseStarted()) return;
     final exercise = _currentExercise;
@@ -526,17 +590,21 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     set.weight = double.tryParse(_weightControllers[_currentSetIndex]?.text ?? '') ?? set.weight;
     set.repetitions = int.tryParse(_repsControllers[_currentSetIndex]?.text ?? '') ?? set.repetitions;
     
+    // Persist set completion into domain model and trigger configured rest phase.
     exercise.completeSet(_currentSetIndex, DateTime.now(), 2);
     _startPauseDurationTimer(exercise.pauseDuration);
     setState(() {
+      // Advance set pointer and persist for cross-card navigation restore.
       _currentSetIndex++;
       _setIndexByExercise[_currentExerciseIndex] = _currentSetIndex;
     });
   }
 
+  // Empty descriptions are suppressed to keep card layout compact.
   bool _hasDescription(Exercise exercise) => exercise.description.trim().isNotEmpty;
 
   void _selectChoiceExercise(int executionIndex, Exercise exercise) {
+    // Ignore stale/out-of-range UI callbacks.
     if (executionIndex < 0 || executionIndex >= _flatExercises.length) return;
 
     setState(() {
@@ -547,6 +615,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       _initializeExerciseStateForIndex(executionIndex);
 
       if (executionIndex == _currentExerciseIndex) {
+        // If current card changed, sync pointer/timer state immediately.
         _restoreCurrentExerciseState();
       }
     });
@@ -559,6 +628,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   bool _tryResetChoiceSelectionOnBack() {
+    // Reset-on-back is strictly limited to unresolved-progress choice cards.
     if (!_isChoiceBatchMode) return false;
     if (_currentExerciseIndex < 0 || _currentExerciseIndex >= _flatExercises.length) return false;
 
@@ -566,15 +636,20 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     if (currentExercise == null) return false;
 
     final batch = _batchForExecutionIndex(_currentExerciseIndex);
+    // Only multi-option batches are reversible.
     if (batch.length <= 1) return false;
+    // Once user navigated away, treat selection as committed.
     if (_navigatedAwayAfterChoice.contains(_currentExerciseIndex)) return false;
+    // Any completed set makes selection durable.
     if ((_setIndexByExercise[_currentExerciseIndex] ?? 0) > 0) return false;
 
     final hasStartedDurationTimer =
         currentExercise.exerciseDuration > 0 && _startedExerciseIndices.contains(_currentExerciseIndex);
+    // Active/started timed execution also makes selection durable.
     if (hasStartedDurationTimer || _isExerciseDurationCountdownRunning) return false;
 
-    // Allow one-step undo of a just-selected choice before any progress is made.
+    // Allow one-step undo of a fresh choice before any durable progress exists.
+    // This keeps back behavior predictable in choice mode without losing completed work.
     setState(() {
       _flatExercises[_currentExerciseIndex] = null;
       _resolvedBatchIndices.remove(_batchIndexByExercise[_currentExerciseIndex]);
@@ -591,6 +666,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     return true;
   }
 
+  // Set table is only rendered for exercises that actually define sets.
   bool _hasSets(Exercise exercise) => exercise.sets.isNotEmpty;
 
   bool _showPauseDurationTimer(Exercise exercise) {
@@ -607,6 +683,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   Widget _buildExerciseTitleAndDescription(Exercise exercise) {
+    // Header block for name + optional description text.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -630,6 +707,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   Widget _buildExerciseProgressOverview({bool highlightCurrent = true}) {
+    // Responsive horizontal progress strip of all execution slots.
     return LayoutBuilder(
       builder: (context, constraints) {
         final count = _flatExercises.length;
@@ -658,6 +736,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
                   final isActive = highlightCurrent && index == _currentExerciseIndex;
                   final isCompleted = _isExerciseFullyCompleted(index);
                   final exercise = _exerciseAt(index);
+                  // Show exercise name when resolved, otherwise fallback ordinal label.
                   final label = exercise?.name ?? '${index + 1}';
 
                   final backgroundColor = isActive
@@ -699,6 +778,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   Widget _buildSetHeader() {
+    // Column headers for the editable set table.
     const headerStyle = TextStyle(
       fontFamily: 'monospace',
       fontWeight: FontWeight.bold,
@@ -727,6 +807,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   Widget _buildSetRow(Exercise exercise, int index) {
     const cellStyle = TextStyle(fontFamily: 'monospace', fontSize: 16);
+    // Current row is editable; previous rows are read-only and styled as done.
     final isCurrent = _isCurrentExerciseStarted() && index == _currentSetIndex;
     final isDone = index < _currentSetIndex;
 
@@ -755,6 +836,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
               width: 80,
               child: isCurrent
                   ? TextField(
+                      // Current set allows inline editing right before confirmation.
                       controller: _weightControllers[index],
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(isDense: true, border: InputBorder.none),
@@ -782,6 +864,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
             SizedBox(
               width: 60,
               child: GestureDetector(
+                // Tap to complete only on the active pending row.
                 onTap: isCurrent && !isDone ? _completeSet : null,
                 child: Text(
                   isDone ? 'true' : 'false',
@@ -798,6 +881,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   Widget _buildSetTableSection(Exercise exercise) {
+    // Set table takes remaining vertical space between header and bottom action area.
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -815,6 +899,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   Widget _buildPauseTimerSection() {
+    // Visual rest-state block shown between sets.
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20),
       width: double.infinity,
@@ -832,6 +917,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   Widget _buildExerciseDurationSection() {
+    // Active countdown block for timed exercises.
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       width: double.infinity,
@@ -845,6 +931,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   Widget _buildStartExerciseButton() {
+    // Explicit start gate for timed exercises before countdown begins.
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -861,6 +948,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     required bool canProceedToNextExercise,
     required String exerciseActionLabel,
   }) {
+    // Main bottom CTA; disabled until progression criteria are met.
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -871,6 +959,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   Widget _buildChoiceButtonsSection(int executionIndex) {
+    // Choice-mode selector shown when current card has not been resolved yet.
     final batch = _batchForExecutionIndex(executionIndex);
 
     return Center(
@@ -886,6 +975,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
           const SizedBox(height: 12),
           for (int i = 0; i < batch.length; i++) ...[
             ElevatedButton(
+              // Resolve slot with selected candidate from this batch.
               onPressed: () => _selectChoiceExercise(executionIndex, batch[i]),
               child: Text(
                 batch[i].name,
@@ -902,6 +992,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Branch 1: terminal state after user finished (or all exercises completed).
     if (_isFinished) {
       final didMakeProgress = _hasMeaningfulProgress();
       return Scaffold(
@@ -923,6 +1014,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
                           'Workout complete',
                           style: TextStyle(fontFamily: 'monospace', fontSize: 20, color: Colors.green),
                         ),
+                        // Only show encouragement when some measurable progress was made.
                         if (didMakeProgress) ...[
                           SizedBox(height: 20),
                           Text('Great work!', style: TextStyle(fontSize: 24)),
@@ -948,6 +1040,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       );
     }
 
+    // Branch 2: defensive fallback for malformed/empty workouts.
     if (_flatExercises.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('Workout')),
@@ -955,18 +1048,23 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       );
     }
 
+    // Branch 3: active workout execution screen.
     final exercise = _currentExercise;
+    // In choice mode, unresolved slot shows chooser instead of exercise details.
     final needsChoiceSelection = _requiresChoiceSelectionAt(_currentExerciseIndex);
+    // Allow CTA during pause only if all sets are done for untimed exercises.
     final canProceedToNextExercise = _canProceedToNextExercise(exercise) ||
         (_isPauseDurationTimerRunning &&
             _areAllSetsDone(exercise) &&
             ((exercise?.exerciseDuration ?? 0) <= 0));
     // Keep action copy consistent; handler still decides whether to advance or finish.
     const exerciseActionLabel = 'endExercise();';
+    // Layout decisions for middle content and timer/start controls.
     final hasSets = exercise != null && _hasSets(exercise);
     final showStartExerciseButton = exercise != null && _shouldShowStartExerciseButton(exercise);
 
     return PopScope(
+      // Back is handled manually to support reset-choice and confirm-finish logic.
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
@@ -979,14 +1077,18 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
             onHorizontalDragEnd: (details) {
+              // Horizontal card navigation is available only under swipe-safe conditions.
               if (!_canSwipeExercises()) return;
 
               final velocity = details.primaryVelocity ?? 0;
+              // Ignore slow drags so horizontal scroll gestures in set rows do not navigate cards.
               if (velocity.abs() < 200) return;
 
               if (velocity < 0) {
+                // Left swipe -> next card.
                 _goToExercise(_currentExerciseIndex + 1);
               } else {
+                // Right swipe -> previous card.
                 _goToExercise(_currentExerciseIndex - 1);
               }
             },
@@ -995,17 +1097,21 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Always show global progress across all execution slots.
                   _buildExerciseProgressOverview(),
                   const SizedBox(height: 16),
                   if (needsChoiceSelection)
                     _buildChoiceButtonsSection(_currentExerciseIndex)
                   else if (exercise != null) ...[
+                    // Exercise detail header is hidden only when slot is unresolved.
                     _buildExerciseTitleAndDescription(exercise),
                     const SizedBox(height: 30),
                   ],
 
+                  // Main middle area: either set table or flexible spacer for no-set exercises.
                   if (hasSets) _buildSetTableSection(exercise) else const Spacer(),
 
+                  // Bottom stack: pause timer, optional start gate, exercise timer, final CTA.
                   if (exercise != null && _showPauseDurationTimer(exercise)) _buildPauseTimerSection(),
                   if (showStartExerciseButton) _buildStartExerciseButton(),
                   if (exercise != null && _showExerciseDurationTimer(exercise)) _buildExerciseDurationSection(),
